@@ -20,14 +20,15 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(GrafikaKomputerowaProjekt1
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        renderarea.h
-        renderarea.cpp
+
+
         window.h window.cpp
         Models/vertex.h Models/vertex.cpp
         Models/edge.h Models/edge.cpp
         Models/polygon.h Models/polygon.cpp
         Models/EdgeTypes/edge_type.h
         View/drawer.h View/drawer.cpp
+        consts.h
 
     )
 # Define target properties for Android with Qt 6 as:
