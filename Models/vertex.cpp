@@ -1,5 +1,5 @@
 #include "vertex.h"
 
-Vertex::Vertex(int x, int y) {
-    point = QPoint(x,y);
+Vertex::Vertex(double x, double y) {
+    point = QPointF(x,y);
 }

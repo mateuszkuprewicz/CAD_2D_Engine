@@ -1,11 +1,10 @@
 #pragma once
 #include <QWidget>
-#include <QImage>
 #include <QMouseEvent>
 #include <vector>
 #include <memory>
-#include "View/drawer.h"
-#include "Models/polygon.h"
+#include "../View/drawer.h"
+#include "../Models/polygon.h"
 
 
 class Window : public QWidget
@@ -21,9 +20,9 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
-    QImage &image;
     std::vector<std::unique_ptr<Polygon>> polygons;
     std::unique_ptr<Drawer> drawer;
+    std::vector<Polygon*> getPolygonPointers() const;
 
     Polygon* draggedPolygon = nullptr;
     Vertex* draggedVertex = nullptr;

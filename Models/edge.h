@@ -11,7 +11,8 @@ class Edge
 {
 public:
     Edge(std::shared_ptr<Vertex> v1, std::shared_ptr<Vertex> v2);
-    std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> vertexes;
+    std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> vertices;
     std::optional<std::unique_ptr<EdgeType>> eType;
+    float getLength();
 };
 

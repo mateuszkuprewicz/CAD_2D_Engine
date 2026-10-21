@@ -7,8 +7,8 @@ class Edge;
 class Vertex
 {
 public:
-    Vertex(int, int);
-    QPoint point;
+    Vertex(double, double);
+    QPointF point;
 private:
     std::pair<Edge*, Edge*> edges;
 };

@@ -21,7 +21,7 @@ void Drawer::Render(QPainter &painter) {
 
     for (const auto& poly : polygons) {
         for (const auto& edge : poly->edges) {
-            painter.drawLine(edge->vertexes.first->point, edge->vertexes.second->point);
+            painter.drawLine(edge->vertices.first->point, edge->vertices.second->point);
         }
     }
 
@@ -30,7 +30,7 @@ void Drawer::Render(QPainter &painter) {
 
     for (const auto& poly : polygons) {
         for (const auto& edge : poly->edges) {
-            painter.drawEllipse(edge->vertexes.first->point, 3, 3);
+            painter.drawEllipse(edge->vertices.first->point, 3, 3);
         }
     }
 }
