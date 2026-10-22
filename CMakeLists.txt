@@ -33,6 +33,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Models/Constraints/abstractconstraint.h Models/Constraints/abstractconstraint.cpp
         Models/Constraints/lengthconstraint.h Models/Constraints/lengthconstraint.cpp
         Controller/constraintsolver.h Controller/constraintsolver.cpp
+        Models/Constraints/parallelismconstraint.h Models/Constraints/parallelismconstraint.cpp
 
     )
 # Define target properties for Android with Qt 6 as:

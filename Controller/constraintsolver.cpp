@@ -4,11 +4,13 @@
 
 void ConstraintSolver::Solve(const std::vector<Polygon*> polygons, Vertex *theImmovableVertex) {
     //primitive loop
-    for(const auto& poly : polygons)
-    {
-        for(auto& constraint : poly->Constraints())
+    for(int i = 0; i < 10; i++) {
+        for(const auto& poly : polygons)
         {
-            constraint->Fix(theImmovableVertex);
+            for(auto& constraint : poly->Constraints())
+            {
+                constraint->Fix(theImmovableVertex);
+            }
         }
     }
 }

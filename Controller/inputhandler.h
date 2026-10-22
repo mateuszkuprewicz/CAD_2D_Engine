@@ -5,17 +5,34 @@
 
 class Polygon;
 class Vertex;
+class Edge;
+
+enum class AppMode { Normal, SelectParallelEdge };
 
 class InputHandler
 {
 public:
-    static void handleDoubleClick(QMouseEvent *event, const std::vector<Polygon*> polygons);
-    static bool handleRightClick(QWidget *, QMouseEvent *event, const std::vector<Polygon*> polygons);
-    static std::pair<Polygon*, Vertex*> handleLeftClick(QMouseEvent *event, const std::vector<Polygon*> polygons, QPoint& outLastPos);
-    static bool handleMouseMove(QMouseEvent *event, const std::vector<Polygon*> polygons, Polygon* draggedPolygon, Vertex* draggedVertex, QPoint& lastPos);
-    static void handleMouseRelease(QMouseEvent *event, Polygon*& draggedPolygon, Vertex*& draggedVertex);
+    InputHandler() = default;
+
+    bool handleDoubleClick(QMouseEvent *event, const std::vector<Polygon*>& polygons);
+    bool handleRightClick(QWidget* parent, QMouseEvent *event, const std::vector<Polygon*>& polygons);
+    bool handleLeftClick(QMouseEvent *event, const std::vector<Polygon*>& polygons);
+    bool handleMouseMove(QMouseEvent *event, const std::vector<Polygon*>& polygons);
+    bool handleMouseRelease(QMouseEvent *event);
+
+    const Edge* getHoveredEdge() const { return hoveredEdge; }
 
 private:
-    static double distSq(QPointF a, QPointF b);
-    static double segmentDistSq(QPointF pt, QPointF v1, QPointF v2);
+    double distSq(QPointF a, QPointF b);
+    double segmentDistSq(QPointF pt, QPointF v1, QPointF v2);
+    Edge* findEdgeUnderCursor(QPoint p, const std::vector<Polygon*>& polygons);
+
+    AppMode currentMode = AppMode::Normal;
+    Edge* firstParallelEdge = nullptr;
+    Polygon* firstParallelPoly = nullptr;
+    Edge* hoveredEdge = nullptr;
+
+    Polygon* draggedPolygon = nullptr;
+    Vertex* draggedVertex = nullptr;
+    QPoint lastMousePos;
 };

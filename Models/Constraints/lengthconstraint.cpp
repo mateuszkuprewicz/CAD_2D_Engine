@@ -4,7 +4,7 @@
 #include <cmath>
 
 float LengthConstraint::getError() {
-    return std::abs(length - edge->getLength());
+    return std::abs(length - edge->GetLength());
 }
 
 void LengthConstraint::Fix(Vertex *theImmovableVertex) const {
@@ -16,7 +16,7 @@ void LengthConstraint::Fix(Vertex *theImmovableVertex) const {
         float dy = v1->point.y() - v2->point.y();
         float dx = v1->point.x() - v2->point.x();
 
-        float proportion = (edge->getLength() - length)/edge->getLength();
+        float proportion = (edge->GetLength() - length)/edge->GetLength();
         v2->point.rx() += dx * proportion;
         v2->point.ry() += dy * proportion;
     }
@@ -24,7 +24,7 @@ void LengthConstraint::Fix(Vertex *theImmovableVertex) const {
         float dy = v2->point.y() - v1->point.y();
         float dx = v2->point.x() - v1->point.x();
 
-        float proportion = (edge->getLength() - length)/edge->getLength();
+        float proportion = (edge->GetLength() - length)/edge->GetLength();
         v1->point.ry() += dy * proportion;
         v1->point.rx() += dx * proportion;
     }
@@ -32,16 +32,19 @@ void LengthConstraint::Fix(Vertex *theImmovableVertex) const {
         float dy = v1->point.y() - v2->point.y();
         float dx = v1->point.x() - v2->point.x();
 
-        float proportion = (edge->getLength() - length)/edge->getLength();
+        float proportion = (edge->GetLength() - length)/edge->GetLength();
         v2->point.rx() += dx * proportion/2;
         v2->point.ry() += dy * proportion/2;
 
         dy = v2->point.y() - v1->point.y();
         dx = v2->point.x() - v1->point.x();
 
-        proportion = (edge->getLength() - length)/edge->getLength();
+        proportion = (edge->GetLength() - length)/edge->GetLength();
         v1->point.ry() += dy * proportion;
         v1->point.rx() += dx * proportion;
-
     }
+}
+
+const Edge* LengthConstraint::GetEdge() const {
+    return edge;
 }
