@@ -1,7 +1,8 @@
 #include "constraintmanager.h"
-#include "Constraints/abstractconstraint.h"
 #include <typeinfo>
-#include <algorithm>
+#include "Constraints/parallelismconstraint.h"
+#include "Constraints/lengthconstraint.h"
+#include "edge.h"
 
 ConstraintManager::ConstraintManager() {}
 
@@ -92,4 +93,38 @@ void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
 
 const std::unordered_map<const Vertex *, std::vector<std::shared_ptr<AbstractConstraint>>>& ConstraintManager::Constraints() {
     return constraints;
+}
+
+AbstractConstraint* ConstraintManager::GetLengthConstraint(const Vertex* v1, const Vertex* v2) const {
+    auto it = constraints.find(v1);
+    if (it != constraints.end()) {
+        for (const auto& c : it->second) {
+            if (dynamic_cast<LengthConstraint*>(c.get())) {
+                auto affected = c->affectedVertices();
+                if (std::find(affected.begin(), affected.end(), v2) != affected.end()) {
+                    return c.get();
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+AbstractConstraint* ConstraintManager::GetParallelConstraint(const Edge* e1, const Edge* e2) const {
+    if (!e1 || !e2) return nullptr;
+    auto v1 = e1->vertices.first.get();
+    auto v3 = e2->vertices.first.get();
+
+    auto it = constraints.find(v1);
+    if (it != constraints.end()) {
+        for (const auto& c : it->second) {
+            if (dynamic_cast<ParallelismConstraint*>(c.get())) {
+                auto affected = c->affectedVertices();
+                if (std::find(affected.begin(), affected.end(), v3) != affected.end()) {
+                    return c.get();
+                }
+            }
+        }
+    }
+    return nullptr;
 }

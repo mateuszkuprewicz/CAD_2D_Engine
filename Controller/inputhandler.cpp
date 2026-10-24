@@ -97,13 +97,24 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
 
             if (segmentDistSq(p, v1->point, v2->point) <= segmentDistans * segmentDistans) {
 
+                bool hasLength = scene->constraintManager.HasEdgeConstraint<LengthConstraint>(v1.get(), v2.get());
+                bool hasParallel = scene->constraintManager.HasEdgeConstraint<ParallelismConstraint>(v1.get(), v2.get());
+
                 QMenu menu(parent);
-                QAction* lengthAction = menu.addAction("Length constraint");
-                QAction* parallelAction = menu.addAction("Paralellism Constraint");
+
+                QMenu* lengthMenu = menu.addMenu("Length Constraint");
+                QAction* addLengthAction = lengthMenu->addAction("Add / Edit");
+                QAction* delLengthAction = lengthMenu->addAction("Delete");
+                delLengthAction->setEnabled(hasLength);
+
+                QMenu* parallelMenu = menu.addMenu("Parallelism Constraint");
+                QAction* addParallelAction = parallelMenu->addAction("Add");
+                QAction* delParallelAction = parallelMenu->addAction("Delete");
+                delParallelAction->setEnabled(hasParallel);
 
                 QAction* selectedAction = menu.exec(event->globalPos());
 
-                if (selectedAction == lengthAction) {
+                if (selectedAction == addLengthAction) {
                     bool ok = false;
                     float current_length = poly->edges[i]->GetLength();
                     double new_length = QInputDialog::getDouble(parent, "Edge Length Constraint", "Enter edge length:", current_length, 1.0, 10000.0, 1, &ok);
@@ -115,8 +126,22 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                         return true;
                     }
                 }
-                else if (selectedAction == parallelAction) {
+                else if (selectedAction == delLengthAction) {
+                    auto* c = scene->constraintManager.GetLengthConstraint(v1.get(), v2.get());
+                    if (c) {
+                        scene->constraintManager.DelConstraint(c);
+                        scene->constraintManager.SolveConstraints(nullptr);
+                    }
+                    return true;
+                }
+                else if (selectedAction == addParallelAction) {
                     currentMode = AppMode::SelectParallelEdge;
+                    firstParallelEdge = poly->edges[i].get();
+                    firstParallelPoly = poly.get();
+                    return true;
+                }
+                else if (selectedAction == delParallelAction) {
+                    currentMode = AppMode::DeleteParallelEdge;
                     firstParallelEdge = poly->edges[i].get();
                     firstParallelPoly = poly.get();
                     return true;
@@ -130,12 +155,20 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
 bool InputHandler::handleLeftClick(QMouseEvent *event) {
     if (!scene || event->button() != Qt::LeftButton) return false;
 
-    if (currentMode == AppMode::SelectParallelEdge) {
+    if (currentMode == AppMode::SelectParallelEdge || currentMode == AppMode::DeleteParallelEdge) {
         if (hoveredEdge && hoveredEdge != firstParallelEdge) {
-            auto constraintOpt = ParallelismConstraint::Create(firstParallelEdge, hoveredEdge);
-            if (constraintOpt.has_value()) {
-                scene->constraintManager.AddConstraint(std::move(constraintOpt.value()));
-                scene->constraintManager.SolveConstraints(nullptr);
+            if (currentMode == AppMode::SelectParallelEdge) {
+                auto constraintOpt = ParallelismConstraint::Create(firstParallelEdge, hoveredEdge);
+                if (constraintOpt.has_value()) {
+                    scene->constraintManager.AddConstraint(std::move(constraintOpt.value()));
+                    scene->constraintManager.SolveConstraints(nullptr);
+                }
+            } else {
+                auto* c = scene->constraintManager.GetParallelConstraint(firstParallelEdge, hoveredEdge);
+                if (c) {
+                    scene->constraintManager.DelConstraint(c);
+                    scene->constraintManager.SolveConstraints(nullptr);
+                }
             }
         }
 
@@ -177,7 +210,7 @@ bool InputHandler::handleMouseMove(QMouseEvent *event) {
     bool requireRedraw = false;
     QPoint currentPos = event->pos();
 
-    if (currentMode == AppMode::SelectParallelEdge) {
+    if (currentMode == AppMode::SelectParallelEdge || currentMode == AppMode::DeleteParallelEdge) {
         Edge* foundEdge = findEdgeUnderCursor(currentPos);
         if (foundEdge != hoveredEdge) {
             hoveredEdge = foundEdge;

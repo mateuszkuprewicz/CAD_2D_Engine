@@ -8,7 +8,7 @@ class Edge;
 class Scene;
 class QWidget;
 
-enum class AppMode { Normal, SelectParallelEdge };
+enum class AppMode { Normal, SelectParallelEdge, DeleteParallelEdge };
 
 class InputHandler
 {
