@@ -6,13 +6,13 @@
 
 ConstraintManager::ConstraintManager() {}
 
-void ConstraintManager::AddConstraint(const std::shared_ptr<AbstractConstraint>& c) {
+void ConstraintManager::AddConstraint(const std::shared_ptr<AbstractConstraint> &c) {
     AbstractConstraint* toDel = nullptr;
     auto vec = c->affectedVertices();
     if(vec.size() > 0) {
         const auto& v = vec[0];
-        const auto& compared_const = constraints.find(v);
-        for(const auto& compared_const : constraints[v]) {
+        const auto& compared_const = Constraints.find(v);
+        for(const auto& compared_const : Constraints[v]) {
             if(typeid(*c) == typeid(*compared_const) && areVertexSetsEqual(vec, compared_const->affectedVertices())) {
                 toDel = compared_const.get();
                 break;
@@ -24,9 +24,8 @@ void ConstraintManager::AddConstraint(const std::shared_ptr<AbstractConstraint>&
 
     for(const auto& v : vec)
     {
-        constraints[v].push_back(c);
+        Constraints[v].push_back(c);
     }
-
 }
 
 bool ConstraintManager::areVertexSetsEqual(std::vector<const Vertex*> vec1, std::vector<const Vertex*> vec2) {
@@ -40,8 +39,8 @@ void ConstraintManager::DelConstraint(const AbstractConstraint* c) {
     if (!c) return;
 
     for (const auto& v : c->affectedVertices()) {
-        auto it = constraints.find(v);
-        if (it != constraints.end()) {
+        auto it = Constraints.find(v);
+        if (it != Constraints.end()) {
             auto& vec = it->second;
             auto found = std::find_if(vec.begin(), vec.end(), [c](const auto& ptr) {
                 return ptr.get() == c;
@@ -54,20 +53,9 @@ void ConstraintManager::DelConstraint(const AbstractConstraint* c) {
     }
 }
 
-void ConstraintManager::SolveConstraints(const Vertex* theImmovableVertex){
-    for(int i = 0; i < 10; i++) {
-        for(auto& [v, list] : constraints)
-        {
-            for(auto& constraint : list) {
-                constraint->Fix(theImmovableVertex);
-            }
-        }
-    }
-}
-
 void ConstraintManager::DelConstraintsForVertex(const Vertex* v) {
-    auto it = constraints.find(v);
-    if (it == constraints.end()) return;
+    auto it = Constraints.find(v);
+    if (it == Constraints.end()) return;
 
     // Copy list to prevent iterator invalidation during erasure
     auto constraintsToDel = it->second;
@@ -77,8 +65,8 @@ void ConstraintManager::DelConstraintsForVertex(const Vertex* v) {
 }
 
 void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
-    auto it = constraints.find(v1);
-    if (it == constraints.end()) return;
+    auto it = Constraints.find(v1);
+    if (it == Constraints.end()) return;
 
     auto list = it->second;
     for (const auto& c : list) {
@@ -91,13 +79,9 @@ void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
     }
 }
 
-const std::unordered_map<const Vertex *, std::vector<std::shared_ptr<AbstractConstraint>>>& ConstraintManager::Constraints() {
-    return constraints;
-}
-
 AbstractConstraint* ConstraintManager::GetLengthConstraint(const Vertex* v1, const Vertex* v2) const {
-    auto it = constraints.find(v1);
-    if (it != constraints.end()) {
+    auto it = Constraints.find(v1);
+    if (it != Constraints.end()) {
         for (const auto& c : it->second) {
             if (dynamic_cast<LengthConstraint*>(c.get())) {
                 auto affected = c->affectedVertices();
@@ -115,8 +99,8 @@ AbstractConstraint* ConstraintManager::GetParallelConstraint(const Edge* e1, con
     auto v1 = e1->vertices.first.get();
     auto v3 = e2->vertices.first.get();
 
-    auto it = constraints.find(v1);
-    if (it != constraints.end()) {
+    auto it = Constraints.find(v1);
+    if (it != Constraints.end()) {
         for (const auto& c : it->second) {
             if (dynamic_cast<ParallelismConstraint*>(c.get())) {
                 auto affected = c->affectedVertices();

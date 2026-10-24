@@ -10,6 +10,7 @@ public:
     void Fix(const Vertex *theImmovableVertex) const override;
     const Edge* GetEdge() const;
     float getError() override;
+    float maxError() override;
     std::vector<const Vertex *> affectedVertices() const override;
 private:
     Edge* edge;

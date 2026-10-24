@@ -26,13 +26,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Models/vertex.h Models/vertex.cpp
         Models/edge.h Models/edge.cpp
         Models/polygon.h Models/polygon.cpp
-        Models/EdgeTypes/edge_type.h
         View/drawer.h View/drawer.cpp
         consts.h
         Controller/inputhandler.h Controller/inputhandler.cpp
         Models/Constraints/abstractconstraint.h Models/Constraints/abstractconstraint.cpp
         Models/Constraints/lengthconstraint.h Models/Constraints/lengthconstraint.cpp
-        #Controller/constraintsolver.h Controller/constraintsolver.cpp
         Models/Constraints/parallelismconstraint.h Models/Constraints/parallelismconstraint.cpp
         Models/constraintmanager.h Models/constraintmanager.cpp
         Models/scene.h Models/scene.cpp

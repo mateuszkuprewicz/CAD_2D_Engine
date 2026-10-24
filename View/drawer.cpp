@@ -58,7 +58,7 @@ void Drawer::Render(QPainter &painter) {
 
     std::unordered_map<const Edge*, std::vector<LabelItem>> edgeLabels;
 
-    for (auto& [v, list] : scene->constraintManager.Constraints()) {
+    for (auto& [v, list] : scene->constraintManager.Constraints) {
         for(const auto& constraint : list) {
             if (drawnConstraints.find(constraint.get()) != drawnConstraints.end()) continue;
             drawnConstraints.insert(constraint.get());

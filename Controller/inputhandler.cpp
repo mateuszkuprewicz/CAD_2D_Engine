@@ -39,7 +39,7 @@ Edge* InputHandler::findEdgeUnderCursor(QPoint p) {
         for (const auto& edge : poly->edges) {
             auto v1 = edge->vertices.first;
             auto v2 = edge->vertices.second;
-            if (segmentDistSq(p, v1->point, v2->point) <= segmentDistans * segmentDistans) {
+            if (segmentDistSq(p, v1->point, v2->point) <= ClickArea::segmentDistans * ClickArea::segmentDistans) {
                 return edge.get();
             }
         }
@@ -58,11 +58,11 @@ bool InputHandler::handleDoubleClick(QMouseEvent *event) {
             QPointF v1 = edge->vertices.first->point;
             QPointF v2 = edge->vertices.second->point;
 
-            if (distSq(p, v1) < vertexRadius * vertexRadius || distSq(p, v2) < vertexRadius * vertexRadius) {
+            if (distSq(p, v1) < ClickArea::vertexRadius * ClickArea::vertexRadius || distSq(p, v2) < ClickArea::vertexRadius * ClickArea::vertexRadius) {
                 continue;
             }
 
-            if (segmentDistSq(p, v1, v2) <= segmentDistans * segmentDistans) {
+            if (segmentDistSq(p, v1, v2) <= ClickArea::segmentDistans * ClickArea::segmentDistans) {
                 auto newVertex = std::make_shared<Vertex>(p.x(), p.y());
                 scene->addVertex(poly.get(), std::move(newVertex), i);
                 return true;
@@ -76,15 +76,15 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
     if (!scene || event->button() != Qt::RightButton) return false;
 
     QPoint p = event->pos();
-    const float radiusSq = vertexRadius * vertexRadius;
+    const float radiusSq = ClickArea::vertexRadius * ClickArea::vertexRadius;
 
     for (const auto& poly : scene->Polygons) {
-        if (poly->edges.size() <= 3) continue;
 
         for (size_t i = 0; i < poly->edges.size(); ++i) {
             auto v1 = poly->edges[i]->vertices.first;
 
             if (distSq(p, v1->point) <= radiusSq) {
+                if (poly->edges.size() <= 3) break;
                 size_t prevIdx = (i == 0) ? poly->edges.size() - 1 : i - 1;
                 scene->delVertex(poly.get(), v1.get(), prevIdx, i);
                 return true;
@@ -95,8 +95,8 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
             auto v1 = poly->edges[i]->vertices.first;
             auto v2 = poly->edges[i]->vertices.second;
 
-            if (segmentDistSq(p, v1->point, v2->point) <= segmentDistans * segmentDistans) {
-
+            if (segmentDistSq(p, v1->point, v2->point) <= ClickArea::segmentDistans * ClickArea::segmentDistans) {
+            //edge clicked
                 bool hasLength = scene->constraintManager.HasEdgeConstraint<LengthConstraint>(v1.get(), v2.get());
                 bool hasParallel = scene->constraintManager.HasEdgeConstraint<ParallelismConstraint>(v1.get(), v2.get());
 
@@ -121,16 +121,15 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
 
                     if (ok) {
                         auto constraint = std::make_shared<LengthConstraint>(poly->edges[i].get(), new_length);
-                        scene->constraintManager.AddConstraint(constraint);
-                        scene->constraintManager.SolveConstraints(nullptr);
+                        scene->AddConstraint(constraint);
+                        scene->TrySolveConstraints(poly->edges[i]->vertices.first.get(), poly->edges[i]->vertices.second.get());
                         return true;
                     }
                 }
                 else if (selectedAction == delLengthAction) {
                     auto* c = scene->constraintManager.GetLengthConstraint(v1.get(), v2.get());
                     if (c) {
-                        scene->constraintManager.DelConstraint(c);
-                        scene->constraintManager.SolveConstraints(nullptr);
+                        scene->DelConstraint(c);
                     }
                     return true;
                 }
@@ -158,16 +157,13 @@ bool InputHandler::handleLeftClick(QMouseEvent *event) {
     if (currentMode == AppMode::SelectParallelEdge || currentMode == AppMode::DeleteParallelEdge) {
         if (hoveredEdge && hoveredEdge != firstParallelEdge) {
             if (currentMode == AppMode::SelectParallelEdge) {
-                auto constraintOpt = ParallelismConstraint::Create(firstParallelEdge, hoveredEdge);
-                if (constraintOpt.has_value()) {
-                    scene->constraintManager.AddConstraint(std::move(constraintOpt.value()));
-                    scene->constraintManager.SolveConstraints(nullptr);
-                }
+                auto constraintOpt = std::make_shared<ParallelismConstraint>(firstParallelEdge, hoveredEdge);
+                scene->AddConstraint(std::move(constraintOpt));
+                scene->TrySolveConstraints(firstParallelEdge->vertices.first.get(), firstParallelEdge->vertices.second.get());
             } else {
                 auto* c = scene->constraintManager.GetParallelConstraint(firstParallelEdge, hoveredEdge);
                 if (c) {
-                    scene->constraintManager.DelConstraint(c);
-                    scene->constraintManager.SolveConstraints(nullptr);
+                    scene->DelConstraint(c);
                 }
             }
         }
@@ -180,7 +176,7 @@ bool InputHandler::handleLeftClick(QMouseEvent *event) {
     }
 
     QPoint p = event->pos();
-    const float radiusSq = vertexRadius * vertexRadius;
+    const float radiusSq = ClickArea::vertexRadius * ClickArea::vertexRadius;
 
     for (const auto& poly : scene->Polygons) {
         for (const auto& edge : poly->edges) {
@@ -225,10 +221,9 @@ bool InputHandler::handleMouseMove(QMouseEvent *event) {
         if (draggedVertex) {
             draggedVertex->point.rx() += dx;
             draggedVertex->point.ry() += dy;
-            scene->constraintManager.SolveConstraints(draggedVertex);
+            scene->SolveConstraints(draggedVertex);
         } else if (draggedPolygon) {
             draggedPolygon->translate(dx, dy);
-            scene->constraintManager.SolveConstraints(nullptr);
         }
 
         lastMousePos = currentPos;

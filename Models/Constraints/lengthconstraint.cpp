@@ -2,9 +2,14 @@
 #include "../edge.h"
 #include "../vertex.h"
 #include <cmath>
+#include "../../consts.h"
 
 float LengthConstraint::getError() {
     return std::abs(length - edge->GetLength());
+}
+
+float LengthConstraint::maxError() {
+    return ConstraintError::length;
 }
 
 void LengthConstraint::Fix(const Vertex *theImmovableVertex) const {

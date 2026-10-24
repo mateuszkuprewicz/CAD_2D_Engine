@@ -13,15 +13,13 @@ public:
     ConstraintManager();
     void AddConstraint(const std::shared_ptr<AbstractConstraint> &);
     void DelConstraint(const AbstractConstraint *);
-    void SolveConstraints(const Vertex* theImmovableVertex);
     void DelConstraintsForVertex(const Vertex *);
     void DelEdgeConstraints(const Vertex* v1, const Vertex* v2);
-    const std::unordered_map<const Vertex *, std::vector<std::shared_ptr<AbstractConstraint>>>& Constraints();
 
     template<typename T>
     bool HasEdgeConstraint(const Vertex* v1, const Vertex* v2) const {
-        auto it = constraints.find(v1);
-        if (it != constraints.end()) {
+        auto it = Constraints.find(v1);
+        if (it != Constraints.end()) {
             for (const auto& c : it->second) {
                 if (dynamic_cast<T*>(c.get())) {
                     auto affected = c->affectedVertices();
@@ -35,9 +33,8 @@ public:
     }
 
     AbstractConstraint* GetLengthConstraint(const Vertex* v1, const Vertex* v2) const;
-AbstractConstraint* GetParallelConstraint(const Edge* e1, const Edge* e2) const;
-
+    AbstractConstraint* GetParallelConstraint(const Edge* e1, const Edge* e2) const;
+    std::unordered_map<const Vertex *, std::vector<std::shared_ptr<AbstractConstraint>>> Constraints;
 private:
-    std::unordered_map<const Vertex *, std::vector<std::shared_ptr<AbstractConstraint>>> constraints;
     bool areVertexSetsEqual(const std::vector<const Vertex*> vec1, const std::vector<const Vertex*> vec2);
 };

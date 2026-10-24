@@ -9,6 +9,13 @@ public:
     Scene();
     void addVertex(Polygon* polygon, std::shared_ptr<Vertex> newVertex, int edgeIdx);
     void delVertex(Polygon* polygon, Vertex* vertex, int prevEdgeIdx, int nextEdgeIdx);
+    void SolveConstraints(Vertex* theImmovableVertex);
+    bool TrySolveConstraints(Vertex* priorityVertex, Vertex* priorityVertex2 = nullptr);
     std::vector<std::unique_ptr<Polygon>> Polygons;
     ConstraintManager constraintManager;
+    void AddConstraint(std::shared_ptr<AbstractConstraint>);
+    void DelConstraint(const AbstractConstraint *);
+
+private:
+    AbstractConstraint *lastAddedConstraint = nullptr;
 };
