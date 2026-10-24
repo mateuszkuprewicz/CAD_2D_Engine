@@ -7,9 +7,10 @@ class LengthConstraint : public AbstractConstraint
 {
 public:
     LengthConstraint(Edge* e, float l) : edge(e), length(l) {}
-    void Fix(Vertex *theImmovableVertex) const override;
+    void Fix(const Vertex *theImmovableVertex) const override;
     const Edge* GetEdge() const;
     float getError() override;
+    std::vector<const Vertex *> affectedVertices() const override;
 private:
     Edge* edge;
     float length;

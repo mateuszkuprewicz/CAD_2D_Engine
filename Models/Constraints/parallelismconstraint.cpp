@@ -7,13 +7,22 @@ ParallelismConstraint::ParallelismConstraint(Edge* e1, Edge* e2) {
     parallel_edges[1] = e2;
 }
 
+const Edge* ParallelismConstraint::GetEdge1() const {
+    return parallel_edges[0];
+}
+
+const Edge* ParallelismConstraint::GetEdge2() const {
+    return parallel_edges[1];
+}
+
 std::optional<std::unique_ptr<ParallelismConstraint>> ParallelismConstraint::Create(Edge* e1, Edge* e2) {
+    //correct validation
     if(e1->vertices.first == e2->vertices.first || e1->vertices.first == e2->vertices.second || e1->vertices.second == e2->vertices.first || e1->vertices.second == e2->vertices.second)
         return std::nullopt;
     else return std::unique_ptr<ParallelismConstraint>(new ParallelismConstraint(e1, e2));
 }
 
-void ParallelismConstraint::Fix(Vertex* theImmovableVertex) const {
+void ParallelismConstraint::Fix(const Vertex* theImmovableVertex) const {
     int immovable_edge_index = -1;
     if(parallel_edges[0]->vertices.first.get() == theImmovableVertex || parallel_edges[0]->vertices.second.get() == theImmovableVertex)
     {
@@ -123,4 +132,19 @@ float ParallelismConstraint::getError() {
     while (diff <= -M_PI) diff += 2.0 * M_PI;
 
     return std::abs(diff); // Error in radians (0.0 means perfectly parallel)
+}
+
+std::vector<const Vertex *> ParallelismConstraint::affectedVertices() const {
+    std::vector<const Vertex *> result;
+    result.push_back(parallel_edges[0]->vertices.first.get());
+    result.push_back(parallel_edges[0]->vertices.second.get());
+    auto temp_v = parallel_edges[1]->vertices.first.get();
+    if(temp_v != result[0] && temp_v != result[1]) {
+        result.push_back(temp_v);
+    }
+    temp_v = parallel_edges[1]->vertices.second.get();
+    if(temp_v != result[0] && temp_v != result[1]) {
+        result.push_back(temp_v);
+    }
+    return result;
 }

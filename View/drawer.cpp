@@ -9,10 +9,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-Drawer::Drawer(std::vector<Polygon *> list) {
-    for(const auto* it : list){
-        polygons.push_back(it);
-    }
+Drawer::Drawer(Scene *s) {
+    scene = s;
 }
 
 QString getSubscriptNumber(int num) {
@@ -33,7 +31,7 @@ void Drawer::Render(QPainter &painter) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     // --- 1. Draw Edges ---
-    for (const auto& poly : polygons) {
+    for (const auto& poly : scene->Polygons) {
         for (const auto& edge : poly->edges) {
             if (edge.get() == hoveredEdge) {
                 painter.setPen(QPen(Qt::green, 3));
@@ -47,7 +45,7 @@ void Drawer::Render(QPainter &painter) {
     // --- 2. Draw Vertices ---
     painter.setPen(Qt::NoPen);
     painter.setBrush(Qt::black);
-    for (const auto& poly : polygons) {
+    for (const auto& poly : scene->Polygons) {
         for (const auto& edge : poly->edges) {
             painter.drawEllipse(edge->vertices.first->point, 3, 3);
         }
@@ -60,25 +58,24 @@ void Drawer::Render(QPainter &painter) {
 
     std::unordered_map<const Edge*, std::vector<LabelItem>> edgeLabels;
 
-    for (const auto& poly : polygons) {
-        for (const auto* constraint : poly->Constraints()) {
-            if (drawnConstraints.find(constraint) != drawnConstraints.end()) continue;
-            drawnConstraints.insert(constraint);
+    for (auto& [v, list] : scene->constraintManager.Constraints()) {
+        for(const auto& constraint : list) {
+            if (drawnConstraints.find(constraint.get()) != drawnConstraints.end()) continue;
+            drawnConstraints.insert(constraint.get());
 
-            if (auto* lenConstraint = dynamic_cast<const LengthConstraint*>(constraint)) {
+            if (auto* lenConstraint = dynamic_cast<const LengthConstraint*>(constraint.get())) {
                 const auto* edge = lenConstraint->GetEdge();
                 if (edge) {
                     QString text = QString::number(edge->GetLength(), 'f', 1);
                     edgeLabels[edge].push_back({text, Qt::blue});
                 }
             }
-            else if (auto* parConstraint = dynamic_cast<const ParallelismConstraint*>(constraint)) {
+            else if (auto* parConstraint = dynamic_cast<const ParallelismConstraint*>(constraint.get())) {
                 if (parallelIds.find(parConstraint) == parallelIds.end()) {
                     parallelIds[parConstraint] = parallelIdCounter++;
                 }
                 int id = parallelIds[parConstraint];
                 QString symbol = "||" + getSubscriptNumber(id);
-
                 if (const auto* e1 = parConstraint->GetEdge1()) {
                     edgeLabels[e1].push_back({symbol, Qt::red});
                 }
@@ -126,7 +123,6 @@ void Drawer::Render(QPainter &painter) {
             painter.drawText(QPointF(currentX, -5), item.text);
             currentX += fm.horizontalAdvance(item.text) + spacing;
         }
-
         painter.restore();
     }
 }

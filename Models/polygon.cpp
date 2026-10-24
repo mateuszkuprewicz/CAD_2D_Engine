@@ -10,12 +10,15 @@ Polygon::Polygon(std::initializer_list<QPoint> list) {
     std::shared_ptr<Vertex> temp = std::make_shared<Vertex>(it->x(), it->y());
     std::unique_ptr temp_edge = std::make_unique<Edge>(first,temp);
     edges.push_back(std::move(temp_edge));
+    vertices.insert(first.get());
+    vertices.insert(temp.get());
 
     std::shared_ptr<Vertex> second;
     for(++it; it!=list.end(); ++it)
     {
         second = std::make_shared<Vertex>(it->x(), it->y());
         edges.push_back(std::make_unique<Edge>(temp,second));
+        vertices.insert(second.get());
         temp = second;
     }
     edges.push_back(std::make_unique<Edge>(second, first));
@@ -51,15 +54,31 @@ bool Polygon::isClicked(QPoint clickPos) const {
             clickPos.y() >= minY && clickPos.y() <= maxY);
 }
 
-void Polygon::AddConstraint(std::unique_ptr<AbstractConstraint> c) {
-    constraints.push_back(std::move(c));
+void Polygon::addVertex(std::shared_ptr<Vertex> newVertex, int edgeIdx) {
+    auto newEdge1 = std::make_unique<Edge>(edges[edgeIdx]->vertices.first, newVertex);
+    auto newEdge2 = std::make_unique<Edge>(newVertex, edges[edgeIdx]->vertices.second);
+
+    edges.erase(edges.begin() + edgeIdx);
+    edges.insert(edges.begin() + edgeIdx, std::move(newEdge2));
+    edges.insert(edges.begin() + edgeIdx, std::move(newEdge1));
+
+    vertices.insert(newVertex.get());
 }
 
-std::vector<const AbstractConstraint*> Polygon::Constraints() const {
-    std::vector<const AbstractConstraint*> result;
-    result.reserve(constraints.size());
-    for (const auto& ptr : constraints) {
-        result.push_back(ptr.get());
+void Polygon::delVertex(Vertex* vertex, int prevEdgeIdx, int nextEdgeIdx) {
+    std::shared_ptr<Vertex> prevVertex = edges[prevEdgeIdx]->vertices.first;
+    std::shared_ptr<Vertex> nextVertex = edges[nextEdgeIdx]->vertices.second;
+
+    if(nextEdgeIdx != 0) {
+        edges.erase(edges.begin() + nextEdgeIdx);
+        edges.erase(edges.begin() + prevEdgeIdx);
+        edges.insert(edges.begin() + prevEdgeIdx, std::make_unique<Edge>(prevVertex, nextVertex));
     }
-    return result;
+    else {
+        edges.erase(edges.begin() + prevEdgeIdx);
+        edges.erase(edges.begin());
+        edges.insert(edges.begin(), std::make_unique<Edge>(prevVertex, nextVertex));
+    }
+
+    vertices.erase(vertex);
 }

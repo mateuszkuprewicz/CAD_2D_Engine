@@ -1,23 +1,24 @@
 #pragma once
 #include <QMouseEvent>
 #include <QPoint>
-#include <vector>
 
 class Polygon;
 class Vertex;
 class Edge;
+class Scene;
+class QWidget;
 
 enum class AppMode { Normal, SelectParallelEdge };
 
 class InputHandler
 {
 public:
-    InputHandler() = default;
+    explicit InputHandler(Scene* scene);
 
-    bool handleDoubleClick(QMouseEvent *event, const std::vector<Polygon*>& polygons);
-    bool handleRightClick(QWidget* parent, QMouseEvent *event, const std::vector<Polygon*>& polygons);
-    bool handleLeftClick(QMouseEvent *event, const std::vector<Polygon*>& polygons);
-    bool handleMouseMove(QMouseEvent *event, const std::vector<Polygon*>& polygons);
+    bool handleDoubleClick(QMouseEvent *event);
+    bool handleRightClick(QWidget* parent, QMouseEvent *event);
+    bool handleLeftClick(QMouseEvent *event);
+    bool handleMouseMove(QMouseEvent *event);
     bool handleMouseRelease(QMouseEvent *event);
 
     const Edge* getHoveredEdge() const { return hoveredEdge; }
@@ -25,8 +26,9 @@ public:
 private:
     double distSq(QPointF a, QPointF b);
     double segmentDistSq(QPointF pt, QPointF v1, QPointF v2);
-    Edge* findEdgeUnderCursor(QPoint p, const std::vector<Polygon*>& polygons);
+    Edge* findEdgeUnderCursor(QPoint p);
 
+    Scene* scene = nullptr;
     AppMode currentMode = AppMode::Normal;
     Edge* firstParallelEdge = nullptr;
     Polygon* firstParallelPoly = nullptr;

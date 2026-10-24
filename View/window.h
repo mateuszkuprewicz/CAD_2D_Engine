@@ -1,17 +1,15 @@
 #pragma once
 #include <QWidget>
 #include <QMouseEvent>
-#include <vector>
 #include <memory>
-#include "../View/drawer.h"
-#include "../Models/polygon.h"
-#include "inputhandler.h"
+#include "drawer.h"
+#include "../Controller/inputhandler.h"
 
 class Window : public QWidget
 {
     Q_OBJECT
 public:
-    Window(QImage&);
+    Window(std::unique_ptr<Drawer>&&, std::unique_ptr<InputHandler>&&);
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -20,9 +18,6 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
-    std::vector<std::unique_ptr<Polygon>> polygons;
     std::unique_ptr<Drawer> drawer;
     std::unique_ptr<InputHandler> inputHandler;
-
-    std::vector<Polygon*> getPolygonPointers() const;
 };

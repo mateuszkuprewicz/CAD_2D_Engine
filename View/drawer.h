@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include <QPainter>
+#include "../Models/scene.h"
 
 class Polygon;
 class Edge;
@@ -9,12 +9,12 @@ class QImage;
 class Drawer
 {
 public:
-    Drawer(std::vector<Polygon *>);
+    Drawer(Scene* s);
     void Render(QPainter& painter);
     void SetHoveredEdge(const Edge* edge) { hoveredEdge = edge; }
 private:
-    std::vector<const Polygon*> polygons;
     const Edge* hoveredEdge = nullptr;
+    Scene *scene;
 };
 
 

@@ -22,7 +22,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
 
 
-        Controller/window.h Controller/window.cpp
+        View/window.h View/window.cpp
         Models/vertex.h Models/vertex.cpp
         Models/edge.h Models/edge.cpp
         Models/polygon.h Models/polygon.cpp
@@ -32,8 +32,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Controller/inputhandler.h Controller/inputhandler.cpp
         Models/Constraints/abstractconstraint.h Models/Constraints/abstractconstraint.cpp
         Models/Constraints/lengthconstraint.h Models/Constraints/lengthconstraint.cpp
-        Controller/constraintsolver.h Controller/constraintsolver.cpp
+        #Controller/constraintsolver.h Controller/constraintsolver.cpp
         Models/Constraints/parallelismconstraint.h Models/Constraints/parallelismconstraint.cpp
+        Models/constraintmanager.h Models/constraintmanager.cpp
+        Models/scene.h Models/scene.cpp
+
 
     )
 # Define target properties for Android with Qt 6 as:

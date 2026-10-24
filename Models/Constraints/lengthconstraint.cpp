@@ -7,7 +7,7 @@ float LengthConstraint::getError() {
     return std::abs(length - edge->GetLength());
 }
 
-void LengthConstraint::Fix(Vertex *theImmovableVertex) const {
+void LengthConstraint::Fix(const Vertex *theImmovableVertex) const {
     const auto &v1 = edge->vertices.first.get();
     const auto &v2 = edge->vertices.second.get();
 
@@ -47,4 +47,11 @@ void LengthConstraint::Fix(Vertex *theImmovableVertex) const {
 
 const Edge* LengthConstraint::GetEdge() const {
     return edge;
+}
+
+std::vector<const Vertex *> LengthConstraint::affectedVertices() const {
+    std::vector<const Vertex *> result;
+    result.push_back(edge->vertices.first.get());
+    result.push_back(edge->vertices.second.get());
+    return result;
 }

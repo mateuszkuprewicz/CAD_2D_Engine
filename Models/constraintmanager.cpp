@@ -1,0 +1,95 @@
+#include "constraintmanager.h"
+#include "Constraints/abstractconstraint.h"
+#include <typeinfo>
+#include <algorithm>
+
+ConstraintManager::ConstraintManager() {}
+
+void ConstraintManager::AddConstraint(const std::shared_ptr<AbstractConstraint>& c) {
+    AbstractConstraint* toDel = nullptr;
+    auto vec = c->affectedVertices();
+    if(vec.size() > 0) {
+        const auto& v = vec[0];
+        const auto& compared_const = constraints.find(v);
+        for(const auto& compared_const : constraints[v]) {
+            if(typeid(*c) == typeid(*compared_const) && areVertexSetsEqual(vec, compared_const->affectedVertices())) {
+                toDel = compared_const.get();
+                break;
+            }
+        }
+    }
+
+    if(toDel != nullptr) DelConstraint(toDel);
+
+    for(const auto& v : vec)
+    {
+        constraints[v].push_back(c);
+    }
+
+}
+
+bool ConstraintManager::areVertexSetsEqual(std::vector<const Vertex*> vec1, std::vector<const Vertex*> vec2) {
+    if (vec1.size() != vec2.size()) return false;
+    std::sort(vec1.begin(), vec1.end());
+    std::sort(vec2.begin(), vec2.end());
+    return vec1 == vec2;
+}
+
+void ConstraintManager::DelConstraint(const AbstractConstraint* c) {
+    if (!c) return;
+
+    for (const auto& v : c->affectedVertices()) {
+        auto it = constraints.find(v);
+        if (it != constraints.end()) {
+            auto& vec = it->second;
+            auto found = std::find_if(vec.begin(), vec.end(), [c](const auto& ptr) {
+                return ptr.get() == c;
+            });
+
+            if (found != vec.end()) {
+                vec.erase(found);
+            }
+        }
+    }
+}
+
+void ConstraintManager::SolveConstraints(const Vertex* theImmovableVertex){
+    for(int i = 0; i < 10; i++) {
+        for(auto& [v, list] : constraints)
+        {
+            for(auto& constraint : list) {
+                constraint->Fix(theImmovableVertex);
+            }
+        }
+    }
+}
+
+void ConstraintManager::DelConstraintsForVertex(const Vertex* v) {
+    auto it = constraints.find(v);
+    if (it == constraints.end()) return;
+
+    // Copy list to prevent iterator invalidation during erasure
+    auto constraintsToDel = it->second;
+    for (const auto& c : constraintsToDel) {
+        DelConstraint(c.get());
+    }
+}
+
+void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
+    auto it = constraints.find(v1);
+    if (it == constraints.end()) return;
+
+    auto list = it->second;
+    for (const auto& c : list) {
+        auto affected = c->affectedVertices();
+        bool affectsV2 = (std::find(affected.begin(), affected.end(), v2) != affected.end());
+
+        if (affectsV2) {
+            DelConstraint(c.get());
+        }
+    }
+}
+
+const std::unordered_map<const Vertex *, std::vector<std::shared_ptr<AbstractConstraint>>>& ConstraintManager::Constraints() {
+    return constraints;
+}
