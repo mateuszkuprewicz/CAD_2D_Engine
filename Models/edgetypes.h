@@ -7,6 +7,12 @@
 class BezierCurve {
 public:
     BezierCurve(const QPointF& p1, const QPointF& p2);
-    std::shared_ptr<Vertex> controlP1;
-    std::shared_ptr<Vertex> controlP2;
+    std::unique_ptr<Vertex> controlP1;
+    std::unique_ptr<Vertex> controlP2;
+};
+
+class ArcCurve {
+public:
+    ArcCurve(QPointF& p1, const QPointF& p2);
+    double radius;
 };

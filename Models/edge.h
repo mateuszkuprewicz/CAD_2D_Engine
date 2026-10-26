@@ -13,5 +13,7 @@ public:
     std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> vertices;
     float GetLength() const;
     std::unique_ptr<BezierCurve> bezier;
+    std::unique_ptr<ArcCurve> arc;
     bool isBezier() const { return bezier != nullptr; }
+    bool isArc() const {return arc != nullptr;}
 };

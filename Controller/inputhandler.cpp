@@ -116,10 +116,11 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
 
                 QMenu* curveMenu = menu.addMenu("Edge Type");
                 QAction* convertToBezier = curveMenu->addAction("Convert to Bezier Curve");
+                QAction* convertToArc = curveMenu->addAction("Convert to Circular Arc");
                 QAction* convertToLine = curveMenu->addAction("Convert to Line");
 
                 convertToBezier->setEnabled(!poly->edges[i]->isBezier());
-                convertToLine->setEnabled(poly->edges[i]->isBezier());
+                convertToLine->setEnabled(poly->edges[i]->isBezier() || poly->edges[i]->isArc());
 
                 QAction* selectedAction = menu.exec(event->globalPos());
 
@@ -157,14 +158,25 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                 else if (selectedAction == convertToBezier) {
                     auto edge = poly->edges[i].get();
                     edge->bezier = std::make_unique<BezierCurve>(v1->point, v2->point);
+                    edge->arc.reset();
 
                     scene->AddConstraint(std::make_shared<BezierContinuityConstraint>(v1.get(), ContinuityLevel::G1));
                     scene->AddConstraint(std::make_shared<BezierContinuityConstraint>(v2.get(), ContinuityLevel::G1));
                     return true;
                 }
+                else if (selectedAction == convertToArc) {
+                    auto edge = poly->edges[i].get();
+                    edge->arc = std::make_unique<ArcCurve>(v1->point, v2->point);
+                    edge->bezier.reset();
+
+                    scene->constraintManager.DelContinuityConstraint(v1.get());
+                    scene->constraintManager.DelContinuityConstraint(v2.get());
+                    return true;
+                }
                 else if (selectedAction == convertToLine) {
                     auto edge = poly->edges[i].get();
                     edge->bezier.reset();
+                    edge->arc.reset();
 
                     scene->constraintManager.DelContinuityConstraint(v1.get());
                     scene->constraintManager.DelContinuityConstraint(v2.get());

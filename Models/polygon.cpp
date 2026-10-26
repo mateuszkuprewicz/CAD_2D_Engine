@@ -88,7 +88,7 @@ bool Polygon::isClicked(QPoint clickPos) const {
     }
 
     return (clickPos.x() >= minX && clickPos.x() <= maxX &&
-            clickPos.y() >= minY && clickPos.y() <= maxY);
+        clickPos.y() >= minY && clickPos.y() <= maxY);
 }
 
 void Polygon::addVertex(std::shared_ptr<Vertex> newVertex, int edgeIdx) {

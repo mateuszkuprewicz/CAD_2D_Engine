@@ -22,6 +22,12 @@ BezierCurve::BezierCurve(const QPointF& p1, const QPointF& p2) {
     double base2X = p1.x() + 2.0 * dx / 3.0;
     double base2Y = p1.y() + 2.0 * dy / 3.0;
 
-    controlP1 = std::make_shared<Vertex>(base1X + nx * offset, base1Y + ny * offset);
-    controlP2 = std::make_shared<Vertex>(base2X + nx * offset, base2Y + ny * offset);
+    controlP1 = std::make_unique<Vertex>(base1X + nx * offset, base1Y + ny * offset);
+    controlP2 = std::make_unique<Vertex>(base2X + nx * offset, base2Y + ny * offset);
+}
+
+ArcCurve::ArcCurve(QPointF& p1, const QPointF& p2) {
+    double dx = p2.x() - p1.x();
+    double dy = p2.y() - p1.y();
+    radius = std::hypot(dx, dy) / 2.0;
 }

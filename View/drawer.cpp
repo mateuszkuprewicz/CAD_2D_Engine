@@ -32,41 +32,86 @@ struct LabelItem {
 void Drawer::Render(QPainter &painter) {
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // --- 1. Draw Edges ---
     for (const auto& poly : scene->Polygons) {
         for (const auto& edge : poly->edges) {
             painter.setPen(edge.get() == hoveredEdge ? QPen(Qt::green, 3) : QPen(Qt::black, 1));
 
             if (edge->isBezier()) {
-                // Draw curve
                 painter.save();
                 painter.setPen(QPen(Qt::lightGray, 1, Qt::DashLine));
                 painter.drawLine(edge->vertices.first->point, edge->vertices.second->point);
                 painter.restore();
+
+                painter.save();
                 QPainterPath path;
                 path.moveTo(edge->vertices.first->point);
                 path.cubicTo(edge->bezier->controlP1->point, edge->bezier->controlP2->point, edge->vertices.second->point);
                 painter.drawPath(path);
 
-                // Draw control polygon (dashed line)
                 painter.setPen(QPen(Qt::gray, 1, Qt::DashLine));
                 painter.drawLine(edge->vertices.first->point, edge->bezier->controlP1->point);
                 painter.drawLine(edge->bezier->controlP1->point, edge->bezier->controlP2->point);
                 painter.drawLine(edge->bezier->controlP2->point, edge->vertices.second->point);
 
-                // Draw control points as rectangles
                 painter.setPen(Qt::NoPen);
                 painter.setBrush(Qt::red);
                 painter.drawRect(QRectF(edge->bezier->controlP1->point.x() - 4, edge->bezier->controlP1->point.y() - 4, 8, 8));
                 painter.drawRect(QRectF(edge->bezier->controlP2->point.x() - 4, edge->bezier->controlP2->point.y() - 4, 8, 8));
                 painter.restore();
-            } else {
+            }
+            else if (edge->isArc()) {
+                QPointF p1 = edge->vertices.first->point;
+                QPointF p2 = edge->vertices.second->point;
+
+                double dx = p2.x() - p1.x();
+                double dy = p2.y() - p1.y();
+                double d = std::hypot(dx, dy);
+
+                if (d < 0.0001) continue;
+
+                double r_val = edge->arc->radius;
+                double R = std::max(std::abs(r_val), d / 2.0);
+                double h = std::sqrt(R * R - (d / 2.0) * (d / 2.0));
+
+                double nx = -dy / d;
+                double ny = dx / d;
+
+                double sign = (r_val >= 0) ? 1.0 : -1.0;
+                QPointF M((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0);
+                QPointF center(M.x() + sign * h * nx, M.y() + sign * h * ny);
+
+                double startAngle = std::atan2(-(p1.y() - center.y()), p1.x() - center.x()) * 180.0 / M_PI;
+                double endAngle = std::atan2(-(p2.y() - center.y()), p2.x() - center.x()) * 180.0 / M_PI;
+
+                double sweepAngle = endAngle - startAngle;
+
+                while (sweepAngle > 180.0) sweepAngle -= 360.0;
+                while (sweepAngle <= -180.0) sweepAngle += 360.0;
+
+                if (r_val >= 0) {
+                    if (sweepAngle >= 0.0) sweepAngle -= 360.0;
+                } else {
+                    if (sweepAngle <= 0.0) sweepAngle += 360.0;
+                }
+
+                if (std::abs(sweepAngle) < 0.0001) {
+                    sweepAngle = (r_val >= 0) ? -180.0 : 180.0;
+                }
+
+                QPainterPath path;
+                path.moveTo(p1);
+                path.arcTo(center.x() - R, center.y() - R, 2.0 * R, 2.0 * R, startAngle, sweepAngle);
+                painter.drawPath(path);
+
+                painter.setPen(QPen(Qt::lightGray, 1, Qt::DashLine));
+                painter.drawLine(p1, p2);
+            }
+            else {
                 painter.drawLine(edge->vertices.first->point, edge->vertices.second->point);
             }
         }
     }
 
-    // --- 2. Draw Vertices ---
     painter.setPen(Qt::NoPen);
     painter.setBrush(Qt::black);
     for (const auto& poly : scene->Polygons) {
@@ -75,7 +120,6 @@ void Drawer::Render(QPainter &painter) {
         }
     }
 
-    // --- 3. Collect Labels Per Edge ---
     int parallelIdCounter = 1;
     std::unordered_map<const AbstractConstraint*, int> parallelIds;
     std::unordered_set<const AbstractConstraint*> drawnConstraints;
@@ -110,9 +154,8 @@ void Drawer::Render(QPainter &painter) {
         }
     }
 
-    // --- 4. Render Aggregated Edge Labels Side-By-Side ---
     QFontMetricsF fm(painter.font());
-    const qreal spacing = 8.0; // Horizontal gap between labels
+    const qreal spacing = 8.0;
 
     for (const auto& [edge, items] : edgeLabels) {
         if (!edge || items.empty()) continue;
@@ -125,11 +168,9 @@ void Drawer::Render(QPainter &painter) {
         double dy = p2.y() - p1.y();
         double angle = std::atan2(dy, dx) * 180.0 / M_PI;
 
-        // Keep text right-side up for readability
         if (angle > 90.0) angle -= 180.0;
         else if (angle < -90.0) angle += 180.0;
 
-        // Calculate total width of all labels combined plus spacing
         qreal totalWidth = 0.0;
         for (size_t i = 0; i < items.size(); ++i) {
             totalWidth += fm.horizontalAdvance(items[i].text);
@@ -140,7 +181,6 @@ void Drawer::Render(QPainter &painter) {
         painter.translate(midPoint);
         painter.rotate(angle);
 
-        // Draw each label sequentially starting from the centered position
         qreal currentX = -totalWidth / 2.0;
         for (const auto& item : items) {
             painter.setPen(item.color);
