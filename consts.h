@@ -8,6 +8,6 @@ namespace ClickArea {
 namespace ConstraintError {
     inline constexpr float length = 0.01;
     inline constexpr float parallel = 0.001;
-    inline constexpr int maxIterationsForConstraint = 100;
+    inline constexpr int maxIterationsForConstraint = 1000;
     inline constexpr int maxGlobalIterations = 2000;
 }

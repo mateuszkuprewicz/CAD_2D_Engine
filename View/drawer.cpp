@@ -6,8 +6,10 @@
 #include "../Models/polygon.h"
 #include "../Models/Constraints/lengthconstraint.h"
 #include "../Models/Constraints/parallelismconstraint.h"
+#include "../Models/edgetypes.h"
 #include <unordered_map>
 #include <unordered_set>
+#include <QPainterPath>
 
 Drawer::Drawer(Scene *s) {
     scene = s;
@@ -33,12 +35,34 @@ void Drawer::Render(QPainter &painter) {
     // --- 1. Draw Edges ---
     for (const auto& poly : scene->Polygons) {
         for (const auto& edge : poly->edges) {
-            if (edge.get() == hoveredEdge) {
-                painter.setPen(QPen(Qt::green, 3));
+            painter.setPen(edge.get() == hoveredEdge ? QPen(Qt::green, 3) : QPen(Qt::black, 1));
+
+            if (edge->isBezier()) {
+                // Draw curve
+                painter.save();
+                painter.setPen(QPen(Qt::lightGray, 1, Qt::DashLine));
+                painter.drawLine(edge->vertices.first->point, edge->vertices.second->point);
+                painter.restore();
+                QPainterPath path;
+                path.moveTo(edge->vertices.first->point);
+                path.cubicTo(edge->bezier->controlP1->point, edge->bezier->controlP2->point, edge->vertices.second->point);
+                painter.drawPath(path);
+
+                // Draw control polygon (dashed line)
+                painter.setPen(QPen(Qt::gray, 1, Qt::DashLine));
+                painter.drawLine(edge->vertices.first->point, edge->bezier->controlP1->point);
+                painter.drawLine(edge->bezier->controlP1->point, edge->bezier->controlP2->point);
+                painter.drawLine(edge->bezier->controlP2->point, edge->vertices.second->point);
+
+                // Draw control points as rectangles
+                painter.setPen(Qt::NoPen);
+                painter.setBrush(Qt::red);
+                painter.drawRect(QRectF(edge->bezier->controlP1->point.x() - 4, edge->bezier->controlP1->point.y() - 4, 8, 8));
+                painter.drawRect(QRectF(edge->bezier->controlP2->point.x() - 4, edge->bezier->controlP2->point.y() - 4, 8, 8));
+                painter.restore();
             } else {
-                painter.setPen(QPen(Qt::black, 1));
+                painter.drawLine(edge->vertices.first->point, edge->vertices.second->point);
             }
-            painter.drawLine(edge->vertices.first->point, edge->vertices.second->point);
         }
     }
 

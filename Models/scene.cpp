@@ -69,13 +69,13 @@ void Scene::SolveConstraints(Vertex* theImmovableVertex) {
 bool Scene::TrySolveConstraints(Vertex* priorityVertex, Vertex* priorityVertex2) {
     if(priorityVertex == nullptr) return false;
 
-    std::unordered_map<Edge *, std::tuple<Vertex, Vertex, EdgeType>> previous_state;
+    std::unordered_map<Edge *, std::pair<Vertex, Vertex>> previous_state;
     for(const auto &poly : Polygons)
     {
         for(const auto& edge : poly->edges) {
             previous_state.insert_or_assign(
                 edge.get(),
-                std::make_tuple(*edge->vertices.first, *edge->vertices.second, edge->eType)
+                std::make_pair(*edge->vertices.first, *edge->vertices.second)
                 );
         }
     }
@@ -124,13 +124,10 @@ bool Scene::TrySolveConstraints(Vertex* priorityVertex, Vertex* priorityVertex2)
     if (!success) {
         DelConstraint(lastAddedConstraint);
 
-        for (const auto& [edgePtr, state] : previous_state) {
-            const auto& [v1_copy, v2_copy, savedType] = state;
+        for (const auto& [edgePtr, vertices_pair] : previous_state) {
 
-            *edgePtr->vertices.first = v1_copy;
-            *edgePtr->vertices.second = v2_copy;
-
-            edgePtr->eType = savedType;
+            *edgePtr->vertices.first = vertices_pair.first;
+            *edgePtr->vertices.second = vertices_pair.second;
         }
     }
 

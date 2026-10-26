@@ -13,40 +13,34 @@ float LengthConstraint::maxError() {
 }
 
 void LengthConstraint::Fix(const Vertex *theImmovableVertex) const {
-    const auto &v1 = edge->vertices.first.get();
-    const auto &v2 = edge->vertices.second.get();
+    auto v1 = edge->vertices.first.get();
+    auto v2 = edge->vertices.second.get();
 
-    //clean this repeatable logic
-    if(v1 == theImmovableVertex) {
-        float dy = v1->point.y() - v2->point.y();
-        float dx = v1->point.x() - v2->point.x();
+    double currentLength = edge->GetLength();
 
-        float proportion = (edge->GetLength() - length)/edge->GetLength();
-        v2->point.rx() += dx * proportion;
-        v2->point.ry() += dy * proportion;
+    double diff = currentLength - length;
+
+    double dx = v2->point.x() - v1->point.x();
+    double dy = v2->point.y() - v1->point.y();
+
+    double proportion = diff / currentLength;
+    double offsetX = dx * proportion;
+    double offsetY = dy * proportion;
+
+    if (v1 == theImmovableVertex) {
+        v2->point.rx() -= offsetX;
+        v2->point.ry() -= offsetY;
     }
-    else if(v2 == theImmovableVertex) {
-        float dy = v2->point.y() - v1->point.y();
-        float dx = v2->point.x() - v1->point.x();
-
-        float proportion = (edge->GetLength() - length)/edge->GetLength();
-        v1->point.ry() += dy * proportion;
-        v1->point.rx() += dx * proportion;
+    else if (v2 == theImmovableVertex) {
+        v1->point.rx() += offsetX;
+        v1->point.ry() += offsetY;
     }
     else {
-        float dy = v1->point.y() - v2->point.y();
-        float dx = v1->point.x() - v2->point.x();
+        v1->point.rx() += offsetX / 2.0;
+        v1->point.ry() += offsetY / 2.0;
 
-        float proportion = (edge->GetLength() - length)/edge->GetLength();
-        v2->point.rx() += dx * proportion/2;
-        v2->point.ry() += dy * proportion/2;
-
-        dy = v2->point.y() - v1->point.y();
-        dx = v2->point.x() - v1->point.x();
-
-        proportion = (edge->GetLength() - length)/edge->GetLength();
-        v1->point.ry() += dy * proportion;
-        v1->point.rx() += dx * proportion;
+        v2->point.rx() -= offsetX / 2.0;
+        v2->point.ry() -= offsetY / 2.0;
     }
 }
 

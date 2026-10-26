@@ -3,6 +3,7 @@
 #include "Constraints/parallelismconstraint.h"
 #include "Constraints/lengthconstraint.h"
 #include "edge.h"
+#include "Constraints/continuityconstraint.h"
 
 ConstraintManager::ConstraintManager() {}
 
@@ -57,7 +58,6 @@ void ConstraintManager::DelConstraintsForVertex(const Vertex* v) {
     auto it = Constraints.find(v);
     if (it == Constraints.end()) return;
 
-    // Copy list to prevent iterator invalidation during erasure
     auto constraintsToDel = it->second;
     for (const auto& c : constraintsToDel) {
         DelConstraint(c.get());
@@ -70,10 +70,42 @@ void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
 
     auto list = it->second;
     for (const auto& c : list) {
-        auto affected = c->affectedVertices();
-        bool affectsV2 = (std::find(affected.begin(), affected.end(), v2) != affected.end());
+        bool shouldDelete = false;
 
-        if (affectsV2) {
+        if (auto* lenC = dynamic_cast<LengthConstraint*>(c.get())) {
+            const Edge* e = lenC->GetEdge();
+            if (e && ((e->vertices.first.get() == v1 && e->vertices.second.get() == v2) ||
+                      (e->vertices.first.get() == v2 && e->vertices.second.get() == v1))) {
+                shouldDelete = true;
+            }
+        }
+        else if (auto* parC = dynamic_cast<ParallelismConstraint*>(c.get())) {
+            const Edge* e1 = parC->GetEdge1();
+            const Edge* e2 = parC->GetEdge2();
+
+            bool matchesE1 = e1 && ((e1->vertices.first.get() == v1 && e1->vertices.second.get() == v2) ||
+                                    (e1->vertices.first.get() == v2 && e1->vertices.second.get() == v1));
+            bool matchesE2 = e2 && ((e2->vertices.first.get() == v1 && e2->vertices.second.get() == v2) ||
+                                    (e2->vertices.first.get() == v2 && e2->vertices.second.get() == v1));
+
+            if (matchesE1 || matchesE2) {
+                shouldDelete = true;
+            }
+        }
+
+        if (shouldDelete) {
+            DelConstraint(c.get());
+        }
+    }
+}
+
+void ConstraintManager::DelContinuityConstraint(const Vertex* v) {
+    auto it = Constraints.find(v);
+    if (it == Constraints.end()) return;
+
+    auto list = it->second;
+    for (const auto& c : list) {
+        if (dynamic_cast<AbstractContinuityConstraint*>(c.get())) {
             DelConstraint(c.get());
         }
     }
@@ -96,15 +128,17 @@ AbstractConstraint* ConstraintManager::GetLengthConstraint(const Vertex* v1, con
 
 AbstractConstraint* ConstraintManager::GetParallelConstraint(const Edge* e1, const Edge* e2) const {
     if (!e1 || !e2) return nullptr;
+
     auto v1 = e1->vertices.first.get();
-    auto v3 = e2->vertices.first.get();
 
     auto it = Constraints.find(v1);
     if (it != Constraints.end()) {
         for (const auto& c : it->second) {
-            if (dynamic_cast<ParallelismConstraint*>(c.get())) {
-                auto affected = c->affectedVertices();
-                if (std::find(affected.begin(), affected.end(), v3) != affected.end()) {
+            if (auto* parConstraint = dynamic_cast<ParallelismConstraint*>(c.get())) {
+                const Edge* c_e1 = parConstraint->GetEdge1();
+                const Edge* c_e2 = parConstraint->GetEdge2();
+
+                if ((c_e1 == e1 && c_e2 == e2) || (c_e1 == e2 && c_e2 == e1)) {
                     return c.get();
                 }
             }

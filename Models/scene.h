@@ -3,6 +3,8 @@
 #include <memory>
 #include "polygon.h"
 #include "constraintmanager.h"
+#include "vertex.h"
+
 
 class Scene {
 public:

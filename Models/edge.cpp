@@ -5,8 +5,7 @@
 Edge::Edge(std::shared_ptr<Vertex> v1, std::shared_ptr<Vertex>v2) {
     vertices.first = v1;
     vertices.second = v2;
-
-    eType = EdgeType::normal;
+    bezier = nullptr;
 }
 
 float Edge::GetLength() const {

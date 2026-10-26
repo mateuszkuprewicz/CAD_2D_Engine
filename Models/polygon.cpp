@@ -56,9 +56,16 @@ Polygon& Polygon::operator=(Polygon temp){
 
 void Polygon::translate(int dx, int dy) {
     for(auto it = edges.begin(); it != edges.end(); ++it) {
-        auto edge = (*it)->vertices;
-        edge.first->point.setX(edge.first->point.x() + dx);
-        edge.first->point.setY(edge.first->point.y() + dy);
+        auto vertices = (*it)->vertices;
+        vertices.first->point.setX(vertices.first->point.x() + dx);
+        vertices.first->point.setY(vertices.first->point.y() + dy);
+        auto edge = it->get();
+        if(edge->isBezier()) {
+            edge->bezier->controlP1->point.rx() += dx;
+            edge->bezier->controlP1->point.ry() += dy;
+            edge->bezier->controlP2->point.rx() += dx;
+            edge->bezier->controlP2->point.ry() += dy;
+        }
     }
 }
 

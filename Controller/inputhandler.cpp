@@ -11,6 +11,8 @@
 #include <QInputDialog>
 #include <QMenu>
 #include <QAction>
+#include "../Models/Constraints/continuityconstraint.h"
+#include "../Models/edgetypes.h"
 
 InputHandler::InputHandler(Scene* scene) : scene(scene) {}
 
@@ -112,6 +114,13 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                 QAction* delParallelAction = parallelMenu->addAction("Delete");
                 delParallelAction->setEnabled(hasParallel);
 
+                QMenu* curveMenu = menu.addMenu("Edge Type");
+                QAction* convertToBezier = curveMenu->addAction("Convert to Bezier Curve");
+                QAction* convertToLine = curveMenu->addAction("Convert to Line");
+
+                convertToBezier->setEnabled(!poly->edges[i]->isBezier());
+                convertToLine->setEnabled(poly->edges[i]->isBezier());
+
                 QAction* selectedAction = menu.exec(event->globalPos());
 
                 if (selectedAction == addLengthAction) {
@@ -143,6 +152,22 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                     currentMode = AppMode::DeleteParallelEdge;
                     firstParallelEdge = poly->edges[i].get();
                     firstParallelPoly = poly.get();
+                    return true;
+                }
+                else if (selectedAction == convertToBezier) {
+                    auto edge = poly->edges[i].get();
+                    edge->bezier = std::make_unique<BezierCurve>(v1->point, v2->point);
+
+                    scene->AddConstraint(std::make_shared<BezierContinuityConstraint>(v1.get(), ContinuityLevel::G1));
+                    scene->AddConstraint(std::make_shared<BezierContinuityConstraint>(v2.get(), ContinuityLevel::G1));
+                    return true;
+                }
+                else if (selectedAction == convertToLine) {
+                    auto edge = poly->edges[i].get();
+                    edge->bezier.reset();
+
+                    scene->constraintManager.DelContinuityConstraint(v1.get());
+                    scene->constraintManager.DelContinuityConstraint(v2.get());
                     return true;
                 }
             }
@@ -177,6 +202,23 @@ bool InputHandler::handleLeftClick(QMouseEvent *event) {
 
     QPoint p = event->pos();
     const float radiusSq = ClickArea::vertexRadius * ClickArea::vertexRadius;
+
+    for (const auto& poly : scene->Polygons) {
+        for (const auto& edge : poly->edges) {
+            if (edge->isBezier()) {
+                if (distSq(p, edge->bezier->controlP1->point) <= radiusSq) {
+                    lastMousePos = p;
+                    draggedVertex = edge->bezier->controlP1.get();
+                    return true;
+                }
+                if (distSq(p, edge->bezier->controlP2->point) <= radiusSq) {
+                    lastMousePos = p;
+                    draggedVertex = edge->bezier->controlP2.get();
+                    return true;
+                }
+            }
+        }
+    }
 
     for (const auto& poly : scene->Polygons) {
         for (const auto& edge : poly->edges) {
@@ -221,6 +263,23 @@ bool InputHandler::handleMouseMove(QMouseEvent *event) {
         if (draggedVertex) {
             draggedVertex->point.rx() += dx;
             draggedVertex->point.ry() += dy;
+
+            for (const auto& poly : scene->Polygons) {
+                for (const auto& edge : poly->edges) {
+                    if (edge->isBezier()) {
+                        if (edge->vertices.first.get() == draggedVertex) {
+                            edge->bezier->controlP1->point.rx() += dx;
+                            edge->bezier->controlP1->point.ry() += dy;
+                        }
+                        if (edge->vertices.second.get() == draggedVertex) {
+                            edge->bezier->controlP2->point.rx() += dx;
+                            edge->bezier->controlP2->point.ry() += dy;
+                        }
+                    }
+                }
+            }
+
+
             scene->SolveConstraints(draggedVertex);
         } else if (draggedPolygon) {
             draggedPolygon->translate(dx, dy);

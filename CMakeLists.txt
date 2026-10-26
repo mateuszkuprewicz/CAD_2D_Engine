@@ -34,6 +34,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Models/Constraints/parallelismconstraint.h Models/Constraints/parallelismconstraint.cpp
         Models/constraintmanager.h Models/constraintmanager.cpp
         Models/scene.h Models/scene.cpp
+        Models/Constraints/continuityconstraint.h
+        Models/edgetypes.h
+        Models/edgetypes.cpp
+
 
 
     )
