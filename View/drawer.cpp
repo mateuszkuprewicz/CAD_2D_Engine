@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <QPainterPath>
+#include "../Models/Constraints/continuityconstraint.h"
 
 Drawer::Drawer(Scene *s) {
     scene = s;
@@ -34,15 +35,18 @@ void Drawer::Render(QPainter &painter) {
 
     for (const auto& poly : scene->Polygons) {
         for (const auto& edge : poly->edges) {
-            painter.setPen(edge.get() == hoveredEdge ? QPen(Qt::green, 3) : QPen(Qt::black, 1));
+            QPen basePen = (edge.get() == hoveredEdge) ? QPen(Qt::green, 3) : QPen(Qt::black, 1);
+            QPen dashedBasePen = (edge.get() == hoveredEdge) ? QPen(Qt::green, 3, Qt::DashLine) : QPen(Qt::lightGray, 1, Qt::DashLine);
+            QPen curvePen = QPen(Qt::black, 1);
 
             if (edge->isBezier()) {
                 painter.save();
-                painter.setPen(QPen(Qt::lightGray, 1, Qt::DashLine));
+                painter.setPen(dashedBasePen);
                 painter.drawLine(edge->vertices.first->point, edge->vertices.second->point);
                 painter.restore();
 
                 painter.save();
+                painter.setPen(curvePen);
                 QPainterPath path;
                 path.moveTo(edge->vertices.first->point);
                 path.cubicTo(edge->bezier->controlP1->point, edge->bezier->controlP2->point, edge->vertices.second->point);
@@ -67,46 +71,38 @@ void Drawer::Render(QPainter &painter) {
                 double dy = p2.y() - p1.y();
                 double d = std::hypot(dx, dy);
 
-                if (d < 0.0001) continue;
+                if (d >= 0.0001) {
+                    double r_val = edge->arc->radius;
+                    double R = std::max(std::abs(r_val), d / 2.0);
+                    double h = std::sqrt(R * R - (d / 2.0) * (d / 2.0));
+                    double nx = -dy / d, ny = dx / d;
+                    double sign = (r_val >= 0) ? 1.0 : -1.0;
+                    QPointF M((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0);
+                    QPointF center(M.x() + sign * h * nx, M.y() + sign * h * ny);
+                    double startAngle = std::atan2(-(p1.y() - center.y()), p1.x() - center.x()) * 180.0 / M_PI;
+                    double endAngle = std::atan2(-(p2.y() - center.y()), p2.x() - center.x()) * 180.0 / M_PI;
+                    double sweepAngle = endAngle - startAngle;
 
-                double r_val = edge->arc->radius;
-                double R = std::max(std::abs(r_val), d / 2.0);
-                double h = std::sqrt(R * R - (d / 2.0) * (d / 2.0));
+                    while (sweepAngle > 180.0) sweepAngle -= 360.0;
+                    while (sweepAngle <= -180.0) sweepAngle += 360.0;
+                    if (r_val >= 0) { if (sweepAngle >= 0.0) sweepAngle -= 360.0; }
+                    else { if (sweepAngle <= 0.0) sweepAngle += 360.0; }
+                    if (std::abs(sweepAngle) < 0.0001) sweepAngle = (r_val >= 0) ? -180.0 : 180.0;
 
-                double nx = -dy / d;
-                double ny = dx / d;
-
-                double sign = (r_val >= 0) ? 1.0 : -1.0;
-                QPointF M((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0);
-                QPointF center(M.x() + sign * h * nx, M.y() + sign * h * ny);
-
-                double startAngle = std::atan2(-(p1.y() - center.y()), p1.x() - center.x()) * 180.0 / M_PI;
-                double endAngle = std::atan2(-(p2.y() - center.y()), p2.x() - center.x()) * 180.0 / M_PI;
-
-                double sweepAngle = endAngle - startAngle;
-
-                while (sweepAngle > 180.0) sweepAngle -= 360.0;
-                while (sweepAngle <= -180.0) sweepAngle += 360.0;
-
-                if (r_val >= 0) {
-                    if (sweepAngle >= 0.0) sweepAngle -= 360.0;
-                } else {
-                    if (sweepAngle <= 0.0) sweepAngle += 360.0;
+                    painter.save();
+                    painter.setPen(curvePen);
+                    QPainterPath path;
+                    path.moveTo(p1);
+                    path.arcTo(center.x() - R, center.y() - R, 2.0 * R, 2.0 * R, startAngle, sweepAngle);
+                    painter.drawPath(path);
+                    painter.restore();
                 }
 
-                if (std::abs(sweepAngle) < 0.0001) {
-                    sweepAngle = (r_val >= 0) ? -180.0 : 180.0;
-                }
-
-                QPainterPath path;
-                path.moveTo(p1);
-                path.arcTo(center.x() - R, center.y() - R, 2.0 * R, 2.0 * R, startAngle, sweepAngle);
-                painter.drawPath(path);
-
-                painter.setPen(QPen(Qt::lightGray, 1, Qt::DashLine));
+                painter.setPen(dashedBasePen);
                 painter.drawLine(p1, p2);
             }
             else {
+                painter.setPen(basePen);
                 painter.drawLine(edge->vertices.first->point, edge->vertices.second->point);
             }
         }
@@ -188,5 +184,30 @@ void Drawer::Render(QPainter &painter) {
             currentX += fm.horizontalAdvance(item.text) + spacing;
         }
         painter.restore();
+    }
+
+    painter.setPen(QPen(Qt::darkMagenta));
+    QFont font = painter.font();
+    font.setBold(true);
+    painter.setFont(font);
+
+    std::unordered_set<const Vertex*> drawnContVertices;
+    for (const auto& [v, list] : scene->constraintManager.Constraints) {
+        for (const auto& constraint : list) {
+            if (auto* contConstraint = dynamic_cast<const ContinuityConstraint*>(constraint.get())) {
+                Vertex* sharedV = contConstraint->getVertex();
+
+                if (drawnContVertices.find(sharedV) != drawnContVertices.end()) continue;
+                drawnContVertices.insert(sharedV);
+
+                QString label;
+                if (dynamic_cast<const G1ContinuityConstraint*>(contConstraint)) label = "G1";
+                else if (dynamic_cast<const C1ContinuityConstraint*>(contConstraint)) label = "C1";
+
+                if (!label.isEmpty()) {
+                    painter.drawText(sharedV->point.x() + 8, sharedV->point.y() - 8, label);
+                }
+            }
+        }
     }
 }

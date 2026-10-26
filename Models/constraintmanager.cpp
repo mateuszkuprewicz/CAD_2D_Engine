@@ -84,20 +84,23 @@ void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
         else if (auto* parC = dynamic_cast<ParallelismConstraint*>(c.get())) {
             const Edge* e1 = parC->GetEdge1();
             const Edge* e2 = parC->GetEdge2();
-
             bool matchesE1 = e1 && ((e1->vertices.first.get() == v1 && e1->vertices.second.get() == v2) ||
                                     (e1->vertices.first.get() == v2 && e1->vertices.second.get() == v1));
             bool matchesE2 = e2 && ((e2->vertices.first.get() == v1 && e2->vertices.second.get() == v2) ||
                                     (e2->vertices.first.get() == v2 && e2->vertices.second.get() == v1));
-
-            if (matchesE1 || matchesE2) {
-                shouldDelete = true;
-            }
+            if (matchesE1 || matchesE2) shouldDelete = true;
+        }
+        else if (auto* contC = dynamic_cast<ContinuityConstraint*>(c.get())) {
+            const Edge* e1 = contC->getEdge1();
+            const Edge* e2 = contC->getEdge2();
+            bool matchesE1 = e1 && ((e1->vertices.first.get() == v1 && e1->vertices.second.get() == v2) ||
+                                    (e1->vertices.first.get() == v2 && e1->vertices.second.get() == v1));
+            bool matchesE2 = e2 && ((e2->vertices.first.get() == v1 && e2->vertices.second.get() == v2) ||
+                                    (e2->vertices.first.get() == v2 && e2->vertices.second.get() == v1));
+            if (matchesE1 || matchesE2) shouldDelete = true;
         }
 
-        if (shouldDelete) {
-            DelConstraint(c.get());
-        }
+        if (shouldDelete) DelConstraint(c.get());
     }
 }
 
@@ -107,7 +110,7 @@ void ConstraintManager::DelContinuityConstraint(const Vertex* v) {
 
     auto list = it->second;
     for (const auto& c : list) {
-        if (dynamic_cast<AbstractContinuityConstraint*>(c.get())) {
+        if (dynamic_cast<ContinuityConstraint*>(c.get())) {
             DelConstraint(c.get());
         }
     }

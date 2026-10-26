@@ -17,6 +17,7 @@ public:
     void DelEdgeConstraints(const Vertex* v1, const Vertex* v2);
     void DelContinuityConstraint(const Vertex* v);
 
+
     template<typename T>
     bool HasEdgeConstraint(const Vertex* v1, const Vertex* v2) const {
         auto it = Constraints.find(v1);

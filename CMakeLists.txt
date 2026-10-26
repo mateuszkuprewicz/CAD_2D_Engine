@@ -37,6 +37,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Models/Constraints/continuityconstraint.h
         Models/edgetypes.h
         Models/edgetypes.cpp
+        Models/Constraints/continuityconstraint.cpp
 
 
 

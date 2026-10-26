@@ -1,39 +1,41 @@
 #pragma once
 #include "abstractconstraint.h"
 
-enum class ContinuityLevel { G0, G1, C1 };
+class Edge;
+class Vertex;
 
-class AbstractContinuityConstraint : public AbstractConstraint {
+class ContinuityConstraint : public AbstractConstraint {
 public:
-    AbstractContinuityConstraint(Vertex* sharedVertex) : centerVertex(sharedVertex) {}
-    virtual ContinuityLevel getContinuityLevel() const = 0;
-    bool isEqual(const AbstractConstraint* other) const override {
-        const auto* o = dynamic_cast<const AbstractContinuityConstraint*>(other);
-        if (!o) return false;
+    ContinuityConstraint(Vertex* sharedVertex, Edge* edge1, Edge* edge2);
+    bool isEqual(const AbstractConstraint* other) const override;
+    std::vector<const Vertex*> affectedVertices() const override;
 
-        return this->centerVertex == o->centerVertex;
-    }
+    Vertex* getVertex() const { return sharedVertex; }
+    Edge* getEdge1() const { return edge1; }
+    Edge* getEdge2() const { return edge2; }
+
 protected:
-    Vertex* centerVertex;
+    Vertex* sharedVertex;
+    Edge* edge1;
+    Edge* edge2;
+
+    void getTangent(Edge* edge, Vertex* shared, double& tx, double& ty) const;
 };
 
-class BezierContinuityConstraint : public AbstractContinuityConstraint {
+class G1ContinuityConstraint : public ContinuityConstraint {
 public:
-    BezierContinuityConstraint(Vertex* sharedVertex, ContinuityLevel level = ContinuityLevel::G1)
-        : AbstractContinuityConstraint(sharedVertex), level(level) {}
+    G1ContinuityConstraint(Vertex* sharedVertex, Edge* edge1, Edge* edge2)
+        : ContinuityConstraint(sharedVertex, edge1, edge2) {}
+    void Fix(const Vertex* theImmovableVertex) const override;
+    float getError() override;
+    float maxError() override;
+};
 
-    ContinuityLevel getContinuityLevel() const override { return level; }
-
-    void Fix(const Vertex* theImmovableVertex) const override {
-
-    }
-
-    std::vector<const Vertex*> affectedVertices() const override {
-        return {centerVertex}; // extend this with affected neighbouring vertices
-    }
-
-    float getError() override { return 0.0f; } // stub
-    float maxError() override { return 0.001f; } // Error tolerance
-private:
-    ContinuityLevel level;
+class C1ContinuityConstraint : public ContinuityConstraint {
+public:
+    C1ContinuityConstraint(Vertex* sharedVertex, Edge* edge1, Edge* edge2)
+        : ContinuityConstraint(sharedVertex, edge1, edge2) {}
+    void Fix(const Vertex* theImmovableVertex) const override;
+    float getError() override;
+    float maxError() override;
 };

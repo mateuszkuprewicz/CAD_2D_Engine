@@ -86,9 +86,47 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
             auto v1 = poly->edges[i]->vertices.first;
 
             if (distSq(p, v1->point) <= radiusSq) {
-                if (poly->edges.size() <= 3) break;
+                QMenu vMenu(parent);
+                QAction* delVertexAction = vMenu.addAction("Delete Vertex");
+                delVertexAction->setEnabled(poly->edges.size() > 3);
+
                 size_t prevIdx = (i == 0) ? poly->edges.size() - 1 : i - 1;
-                scene->delVertex(poly.get(), v1.get(), prevIdx, i);
+                auto prevEdge = poly->edges[prevIdx].get();
+                auto currEdge = poly->edges[i].get();
+
+                bool hasCurve = prevEdge->isBezier() || prevEdge->isArc() || currEdge->isBezier() || currEdge->isArc();
+
+                QMenu* contMenu = nullptr;
+                QAction* setG0 = nullptr;
+                QAction* setG1 = nullptr;
+                QAction* setC1 = nullptr;
+
+                if (hasCurve) {
+                    contMenu = vMenu.addMenu("Continuity");
+                    setG0 = contMenu->addAction("G0 (None)");
+                    setG1 = contMenu->addAction("G1");
+                    setC1 = contMenu->addAction("C1");
+                }
+
+                QAction* sel = vMenu.exec(event->globalPos());
+
+                if (sel == delVertexAction) {
+                    scene->constraintManager.DelEdgeConstraints(prevEdge->vertices.first.get(), prevEdge->vertices.second.get());
+                    scene->constraintManager.DelEdgeConstraints(currEdge->vertices.first.get(), currEdge->vertices.second.get());
+
+                    scene->delVertex(poly.get(), v1.get(), prevIdx, i);
+                    return true;
+                } else if (sel && hasCurve) {
+                    scene->constraintManager.DelContinuityConstraint(v1.get());
+                    if (sel == setG1) {
+                        scene->AddConstraint(std::make_shared<G1ContinuityConstraint>(v1.get(), prevEdge, currEdge));
+                        scene->TrySolveConstraints(v1.get(), nullptr);
+                    } else if (sel == setC1) {
+                        scene->AddConstraint(std::make_shared<C1ContinuityConstraint>(v1.get(), prevEdge, currEdge));
+                        scene->TrySolveConstraints(v1.get(), nullptr);
+                    }
+                    return true;
+                }
                 return true;
             }
         }
@@ -160,26 +198,32 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                     edge->bezier = std::make_unique<BezierCurve>(v1->point, v2->point);
                     edge->arc.reset();
 
-                    scene->AddConstraint(std::make_shared<BezierContinuityConstraint>(v1.get(), ContinuityLevel::G1));
-                    scene->AddConstraint(std::make_shared<BezierContinuityConstraint>(v2.get(), ContinuityLevel::G1));
-                    return true;
-                }
-                else if (selectedAction == convertToArc) {
-                    auto edge = poly->edges[i].get();
-                    edge->arc = std::make_unique<ArcCurve>(v1->point, v2->point);
-                    edge->bezier.reset();
+                    size_t prevIdx = (i == 0) ? poly->edges.size() - 1 : i - 1;
+                    size_t nextIdx = (i + 1) % poly->edges.size();
 
                     scene->constraintManager.DelContinuityConstraint(v1.get());
                     scene->constraintManager.DelContinuityConstraint(v2.get());
+
+                    scene->AddConstraint(std::make_shared<G1ContinuityConstraint>(v1.get(), poly->edges[prevIdx].get(), edge));
+                    scene->AddConstraint(std::make_shared<G1ContinuityConstraint>(v2.get(), edge, poly->edges[nextIdx].get()));
+                    scene->TrySolveConstraints(v1.get(), v2.get());
+                    return true;
+                }
+                else if (selectedAction == convertToArc) {
+                    scene->constraintManager.DelContinuityConstraint(v1.get());
+                    scene->constraintManager.DelContinuityConstraint(v2.get());
+                    auto edge = poly->edges[i].get();
+                    edge->arc = std::make_unique<ArcCurve>(v1->point, v2->point);
+                    edge->bezier.reset();
                     return true;
                 }
                 else if (selectedAction == convertToLine) {
+                    scene->constraintManager.DelContinuityConstraint(v1.get());
+                    scene->constraintManager.DelContinuityConstraint(v2.get());
                     auto edge = poly->edges[i].get();
                     edge->bezier.reset();
                     edge->arc.reset();
 
-                    scene->constraintManager.DelContinuityConstraint(v1.get());
-                    scene->constraintManager.DelContinuityConstraint(v2.get());
                     return true;
                 }
             }
@@ -290,7 +334,6 @@ bool InputHandler::handleMouseMove(QMouseEvent *event) {
                     }
                 }
             }
-
 
             scene->SolveConstraints(draggedVertex);
         } else if (draggedPolygon) {
