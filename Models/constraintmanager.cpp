@@ -10,21 +10,23 @@ ConstraintManager::ConstraintManager() {}
 void ConstraintManager::AddConstraint(const std::shared_ptr<AbstractConstraint> &c) {
     AbstractConstraint* toDel = nullptr;
     auto vec = c->affectedVertices();
-    if(vec.size() > 0) {
+
+    if(!vec.empty()) {
         const auto& v = vec[0];
-        const auto& compared_const = Constraints.find(v);
-        for(const auto& compared_const : Constraints[v]) {
-            if(typeid(*c) == typeid(*compared_const) && areVertexSetsEqual(vec, compared_const->affectedVertices())) {
-                toDel = compared_const.get();
-                break;
+        auto it = Constraints.find(v);
+        if(it != Constraints.end()) {
+            for(const auto& compared_const : it->second) {
+                if(c->isEqual(compared_const.get())) {
+                    toDel = compared_const.get();
+                    break;
+                }
             }
         }
     }
 
     if(toDel != nullptr) DelConstraint(toDel);
 
-    for(const auto& v : vec)
-    {
+    for(const auto& v : vec) {
         Constraints[v].push_back(c);
     }
 }

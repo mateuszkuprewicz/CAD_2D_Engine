@@ -146,3 +146,11 @@ std::vector<const Vertex *> ParallelismConstraint::affectedVertices() const {
     }
     return result;
 }
+
+bool ParallelismConstraint::isEqual(const AbstractConstraint* other) const {
+    const auto* o = dynamic_cast<const ParallelismConstraint*>(other);
+    if (!o) return false;
+
+    return (this->parallel_edges[0] == o->parallel_edges[0] && this->parallel_edges[1] == o->parallel_edges[1]) ||
+           (this->parallel_edges[0] == o->parallel_edges[1] && this->parallel_edges[1] == o->parallel_edges[0]);
+}

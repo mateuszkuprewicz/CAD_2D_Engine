@@ -54,3 +54,10 @@ std::vector<const Vertex *> LengthConstraint::affectedVertices() const {
     result.push_back(edge->vertices.second.get());
     return result;
 }
+
+bool LengthConstraint::isEqual(const AbstractConstraint* other) const {
+    const auto* o = dynamic_cast<const LengthConstraint*>(other);
+    if (!o) return false;
+
+    return this->edge == o->edge;
+}

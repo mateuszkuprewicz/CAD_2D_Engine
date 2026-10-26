@@ -12,6 +12,7 @@ public:
     float getError() override;
     float maxError() override;
     std::vector<const Vertex *> affectedVertices() const override;
+    bool isEqual(const AbstractConstraint* other) const override;
 private:
     Edge* edge;
     float length;

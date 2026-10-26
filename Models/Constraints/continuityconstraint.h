@@ -7,6 +7,12 @@ class AbstractContinuityConstraint : public AbstractConstraint {
 public:
     AbstractContinuityConstraint(Vertex* sharedVertex) : centerVertex(sharedVertex) {}
     virtual ContinuityLevel getContinuityLevel() const = 0;
+    bool isEqual(const AbstractConstraint* other) const override {
+        const auto* o = dynamic_cast<const AbstractContinuityConstraint*>(other);
+        if (!o) return false;
+
+        return this->centerVertex == o->centerVertex;
+    }
 protected:
     Vertex* centerVertex;
 };
