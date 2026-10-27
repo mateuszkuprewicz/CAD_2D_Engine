@@ -1,5 +1,29 @@
 # Dokumentacja Silnika Geometrycznego 2D (C++/Qt)
 
+## 0. Użyte Technologie i Uruchomienie Projektu
+
+### Technologie:
+* **Język programowania:** C++ (standard C++17 lub nowszy)
+* **Framework:** Qt (moduły: Qt Core, Qt GUI, Qt Widgets – obsługa okien, zdarzeń myszy oraz silnik rysowania `QPainter`)
+* **System budowania:** CMake
+
+---
+
+### Sposób 1: Uruchomienie przez Qt Creator
+1. Zainstaluj pakiet Qt wraz ze środowiskiem **Qt Creator** (przez oficjalny *Qt Online Installer*).
+2. Uruchom program Qt Creator.
+3. Wybierz opcję **File -> Open Project** i wskaż plik **`CMakeLists.txt`** znajdujący się w głównym katalogu projektu.
+4. W oknie konfiguracji projektu wybierz dostępny zestaw narzędzi (tzw. *Kit*, np. *Desktop Qt 6.x / MSVC, MinGW lub GCC*) i kliknij **Configure Project**.
+
+---
+
+### Sposób 2: Budowanie z linii poleceń (CMake CLI)
+Jeśli posiadasz zainstalowany sam pakiet Qt oraz kompilator z CMake bez środowiska Qt Creator:
+1. Otwórz terminal w głównym katalogu projektu.
+2. Skonfiguruj projekt, przekazując ścieżkę do katalogu z bibliotekami Qt za pomocą flagi `-DCMAKE_PREFIX_PATH`:
+   ```bash
+   cmake -B build -S . -DCMAKE_PREFIX_PATH="C:/Qt/6.x.x/mingw_64"
+
 ## 1. Wprowadzenie i Założenia Projektowe
 Aplikacja jest zaawansowanym silnikiem grafiki wektorowej typu CAD 2D, operującym na architekturze wierzchołków (Vertex), krawędzi (Edge) i poligonów (Polygon). Głównym celem projektu jest zapewnienie stabilnego i w czasie rzeczywistym reagującego interfejsu z obsługą dynamicznych ograniczeń (Constraints) – zarówno geometrycznych (długość, równoległość), jak i matematycznych ciągłości krzywych ($G0, G1, C1$).
 
