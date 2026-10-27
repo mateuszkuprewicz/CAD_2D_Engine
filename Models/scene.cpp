@@ -5,6 +5,7 @@
 #include "vertex.h"
 #include "edge.h"
 #include <tuple>
+#include "continuityconstraintmanager.h"
 
 Scene::Scene() {
     Polygons.push_back(std::make_unique<Polygon>(
@@ -20,16 +21,20 @@ void Scene::DelConstraint(const AbstractConstraint *c) {
     constraintManager.DelConstraint(c);
 }
 
-
 void Scene::addVertex(Polygon* polygon, std::shared_ptr<Vertex> newVertex, int edgeIdx) {
     if (!polygon || edgeIdx < 0 || edgeIdx >= polygon->edges.size()) return;
 
     Vertex* v1 = polygon->edges[edgeIdx]->vertices.first.get();
     Vertex* v2 = polygon->edges[edgeIdx]->vertices.second.get();
 
-    constraintManager.DelEdgeConstraints(v1, v2);
+    auto state1 = ContinuityConstraintManager::SaveState(&constraintManager, v1);
+    auto state2 = ContinuityConstraintManager::SaveState(&constraintManager, v2);
 
+    constraintManager.DelEdgeConstraints(v1, v2);
     polygon->addVertex(newVertex, edgeIdx);
+
+    ContinuityConstraintManager::RestoreState(this, polygon, v1, state1);
+    ContinuityConstraintManager::RestoreState(this, polygon, v2, state2);
 }
 
 void Scene::delVertex(Polygon* polygon, Vertex* vertex, int prevEdgeIdx, int nextEdgeIdx) {

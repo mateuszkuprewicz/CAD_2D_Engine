@@ -4,6 +4,7 @@
 #include "Constraints/lengthconstraint.h"
 #include "edge.h"
 #include "Constraints/continuityconstraint.h"
+#include "continuityconstraintmanager.h"
 
 ConstraintManager::ConstraintManager() {}
 
@@ -67,12 +68,17 @@ void ConstraintManager::DelConstraintsForVertex(const Vertex* v) {
 }
 
 void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
-    auto it = Constraints.find(v1);
-    if (it == Constraints.end()) return;
+    std::vector<std::shared_ptr<AbstractConstraint>> list;
 
-    auto list = it->second;
-    it = Constraints.find(v2);
-    list.insert(list.end(), it->second.begin(), it->second.end());
+    auto it1 = Constraints.find(v1);
+    if (it1 != Constraints.end()) {
+        list.insert(list.end(), it1->second.begin(), it1->second.end());
+    }
+
+    auto it2 = Constraints.find(v2);
+    if (it2 != Constraints.end()) {
+        list.insert(list.end(), it2->second.begin(), it2->second.end());
+    }
 
     for (const auto& c : list) {
         bool shouldDelete = false;
@@ -80,7 +86,7 @@ void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
         if (auto* lenC = dynamic_cast<LengthConstraint*>(c.get())) {
             const Edge* e = lenC->GetEdge();
             if ((e->vertices.first.get() == v1 && e->vertices.second.get() == v2) ||
-                      (e->vertices.first.get() == v2 && e->vertices.second.get() == v1)) {
+                (e->vertices.first.get() == v2 && e->vertices.second.get() == v1)) {
                 shouldDelete = true;
             }
         }
@@ -88,18 +94,18 @@ void ConstraintManager::DelEdgeConstraints(const Vertex* v1, const Vertex* v2) {
             const Edge* e1 = parC->GetEdge1();
             const Edge* e2 = parC->GetEdge2();
             bool matchesE1 = ((e1->vertices.first.get() == v1 && e1->vertices.second.get() == v2) ||
-                                    (e1->vertices.first.get() == v2 && e1->vertices.second.get() == v1));
+                              (e1->vertices.first.get() == v2 && e1->vertices.second.get() == v1));
             bool matchesE2 = ((e2->vertices.first.get() == v1 && e2->vertices.second.get() == v2) ||
-                                    (e2->vertices.first.get() == v2 && e2->vertices.second.get() == v1));
+                              (e2->vertices.first.get() == v2 && e2->vertices.second.get() == v1));
             if (matchesE1 || matchesE2) shouldDelete = true;
         }
         else if (auto* contC = dynamic_cast<ContinuityConstraint*>(c.get())) {
             const Edge* e1 = contC->getEdge1();
             const Edge* e2 = contC->getEdge2();
             bool matchesE1 = ((e1->vertices.first.get() == v1 && e1->vertices.second.get() == v2) ||
-                                    (e1->vertices.first.get() == v2 && e1->vertices.second.get() == v1));
+                              (e1->vertices.first.get() == v2 && e1->vertices.second.get() == v1));
             bool matchesE2 = ((e2->vertices.first.get() == v1 && e2->vertices.second.get() == v2) ||
-                                    (e2->vertices.first.get() == v2 && e2->vertices.second.get() == v1));
+                              (e2->vertices.first.get() == v2 && e2->vertices.second.get() == v1));
             if (matchesE1 || matchesE2) shouldDelete = true;
         }
         if (shouldDelete) DelConstraint(c.get());
@@ -154,4 +160,13 @@ AbstractConstraint* ConstraintManager::GetParallelConstraint(const Edge* e1, con
         }
     }
     return nullptr;
+}
+
+std::vector<std::shared_ptr<AbstractConstraint>> ConstraintManager::HandleEdgeConversion(Edge* changedEdge, Edge* prevEdge, Edge* nextEdge) {
+    std::vector<std::shared_ptr<AbstractConstraint>> surviving;
+    auto s1 = ContinuityConstraintManager::HandleEdgeChange(this, changedEdge->vertices.first.get(), prevEdge);
+    auto s2 = ContinuityConstraintManager::HandleEdgeChange(this, changedEdge->vertices.second.get(), nextEdge);
+    surviving.insert(surviving.end(), s1.begin(), s1.end());
+    surviving.insert(surviving.end(), s2.begin(), s2.end());
+    return surviving;
 }

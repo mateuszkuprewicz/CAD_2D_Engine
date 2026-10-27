@@ -37,6 +37,6 @@ public:
     AbstractConstraint* GetLengthConstraint(const Vertex* v1, const Vertex* v2) const;
     AbstractConstraint* GetParallelConstraint(const Edge* e1, const Edge* e2) const;
     std::unordered_map<const Vertex *, std::vector<std::shared_ptr<AbstractConstraint>>> Constraints;
-private:
+    std::vector<std::shared_ptr<AbstractConstraint>> HandleEdgeConversion(Edge* changedEdge, Edge* prevEdge, Edge* nextEdge);
     bool areVertexSetsEqual(const std::vector<const Vertex*> vec1, const std::vector<const Vertex*> vec2);
 };
