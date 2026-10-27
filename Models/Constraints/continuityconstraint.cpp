@@ -223,27 +223,26 @@ void C1ContinuityConstraint::Fix(const Vertex* theImmovableVertex) const {
     double dx2 = p2->point.x() - sharedVertex->point.x();
     double dy2 = p2->point.y() - sharedVertex->point.y();
 
-    double len1 = std::hypot(dx1, dy1);
-    double len2 = std::hypot(dx2, dy2);
-
-    if (len1 < 0.001 || len2 < 0.001) return;
-
-    double targetLen = (len1 + len2) / 2.0;
-    double nx = (dx1 / len1 - dx2 / len2) / 2.0;
-    double ny = (dy1 / len1 - dy2 / len2) / 2.0;
-
-    double nLen = std::hypot(nx, ny);
-    if(nLen > 0.001) {
-        nx /= nLen;
-        ny /= nLen;
-    }
-
-    if (edge1->isBezier() && p1 != theImmovableVertex) {
-        p1->point.setX(sharedVertex->point.x() + nx * targetLen);
-        p1->point.setY(sharedVertex->point.y() + ny * targetLen);
-    }
-    if (edge2->isBezier() && p2 != theImmovableVertex) {
-        p2->point.setX(sharedVertex->point.x() - nx * targetLen);
-        p2->point.setY(sharedVertex->point.y() - ny * targetLen);
+    if (p1 == theImmovableVertex) {
+        p2->point.setX(sharedVertex->point.x() - dx1);
+        p2->point.setY(sharedVertex->point.y() - dy1);
+    } else if (p2 == theImmovableVertex) {
+        p1->point.setX(sharedVertex->point.x() - dx2);
+        p1->point.setY(sharedVertex->point.y() - dy2);
+    } else {
+        if (edge1->isBezier() && !edge2->isBezier()) {
+            p1->point.setX(sharedVertex->point.x() - dx2);
+            p1->point.setY(sharedVertex->point.y() - dy2);
+        } else if (edge2->isBezier() && !edge1->isBezier()) {
+            p2->point.setX(sharedVertex->point.x() - dx1);
+            p2->point.setY(sharedVertex->point.y() - dy1);
+        } else {
+            double avgX = (dx1 - dx2) / 2.0;
+            double avgY = (dy1 - dy2) / 2.0;
+            p1->point.setX(sharedVertex->point.x() + avgX);
+            p1->point.setY(sharedVertex->point.y() + avgY);
+            p2->point.setX(sharedVertex->point.x() - avgX);
+            p2->point.setY(sharedVertex->point.y() - avgY);
+        }
     }
 }
