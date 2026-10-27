@@ -72,7 +72,7 @@ void ContinuityConstraint::getTangent(Edge* edge, Vertex* shared, double& tx, do
     if (len > 0.001) { tx /= len; ty /= len; }
 }
 
-float G1ContinuityConstraint::maxError() { return 0.01f; }
+float G1ContinuityConstraint::maxError() { return 0.1f; }
 
 float G1ContinuityConstraint::getError() {
     double tx1 = 0, ty1 = 0, tx2 = 0, ty2 = 0;
@@ -82,6 +82,32 @@ float G1ContinuityConstraint::getError() {
 }
 
 void G1ContinuityConstraint::Fix(const Vertex* theImmovableVertex) const {
+    auto setArcRadius = [](Edge* arcEdge, Vertex* shared, double tgtX, double tgtY) {
+        bool isFirst = (arcEdge->vertices.first.get() == shared);
+        Vertex* arcEnd = isFirst ? arcEdge->vertices.second.get() : arcEdge->vertices.first.get();
+        double chordX = arcEnd->point.x() - shared->point.x();
+        double chordY = arcEnd->point.y() - shared->point.y();
+        double chordLenSq = chordX * chordX + chordY * chordY;
+
+        // Iloczyn wektorowy - determinuje promień i stronę cięciwy
+        double cross = tgtX * chordY - tgtY * chordX;
+
+        // Zapewnienie spójności wypukłości niezależnie od tego, czy modyfikujemy początek czy koniec
+        if (!isFirst) {
+            cross = -cross;
+        }
+
+        // Iloczyn skalarny - jeśli styczna i cięciwa mają rozbieżne kierunki, to mamy do czynienia z dużym łukiem
+        double dot = tgtX * chordX + tgtY * chordY;
+        arcEdge->arc->isMajorArc = (dot < 0.0);
+
+        if (std::abs(cross) < 0.0001) {
+            arcEdge->arc->radius = (cross >= 0 ? 1.0 : -1.0) * 1000000.0;
+        } else {
+            arcEdge->arc->radius = chordLenSq / (2.0 * cross);
+        }
+    };
+
     if (!edge1->isArc() && !edge2->isArc()) {
         Vertex* p1 = edge1->isBezier() ? (edge1->vertices.first.get() == sharedVertex ? edge1->bezier->controlP1.get() : edge1->bezier->controlP2.get()) : (edge1->vertices.first.get() == sharedVertex ? edge1->vertices.second.get() : edge1->vertices.first.get());
         Vertex* p2 = edge2->isBezier() ? (edge2->vertices.first.get() == sharedVertex ? edge2->bezier->controlP1.get() : edge2->bezier->controlP2.get()) : (edge2->vertices.first.get() == sharedVertex ? edge2->vertices.second.get() : edge2->vertices.first.get());
@@ -115,87 +141,100 @@ void G1ContinuityConstraint::Fix(const Vertex* theImmovableVertex) const {
                 p2->point.setY(sharedVertex->point.y() - ny1 * len2);
             }
         }
+    } else if (edge1->isArc() && edge2->isArc()) {
+        double t1x = 0, t1y = 0; getTangent(edge1, sharedVertex, t1x, t1y);
+        double t2x = 0, t2y = 0; getTangent(edge2, sharedVertex, t2x, t2y);
+
+        double tgtX = t1x - t2x;
+        double tgtY = t1y - t2y;
+        double len = std::hypot(tgtX, tgtY);
+        if (len > 0.001) { tgtX /= len; tgtY /= len; }
+        else { tgtX = t1x; tgtY = t1y; }
+
+        setArcRadius(edge1, sharedVertex, tgtX, tgtY);
+        setArcRadius(edge2, sharedVertex, -tgtX, -tgtY);
     } else {
         Edge* arcEdge = edge1->isArc() ? edge1 : edge2;
         Edge* otherEdge = edge1->isArc() ? edge2 : edge1;
-        Vertex* arcEnd = (arcEdge->vertices.first.get() == sharedVertex) ? arcEdge->vertices.second.get() : arcEdge->vertices.first.get();
-        Vertex* pOther = otherEdge->isBezier() ? (otherEdge->vertices.first.get() == sharedVertex ? otherEdge->bezier->controlP1.get() : otherEdge->bezier->controlP2.get()) : (otherEdge->vertices.first.get() == sharedVertex ? otherEdge->vertices.second.get() : otherEdge->vertices.first.get());
 
-        if (pOther == theImmovableVertex || arcEnd != theImmovableVertex) {
-            double tx = 0, ty = 0;
-            getTangent(otherEdge, sharedVertex, tx, ty);
-            double tgtX = -tx, tgtY = -ty;
-            double chordX = arcEnd->point.x() - sharedVertex->point.x();
-            double chordY = arcEnd->point.y() - sharedVertex->point.y();
-            double chordLenSq = chordX * chordX + chordY * chordY;
-            double cross = tgtX * chordY - tgtY * chordX;
-            if (std::abs(cross) > 0.001) {
-                arcEdge->arc->radius = chordLenSq / (2.0 * cross);
+        if (otherEdge->isBezier()) {
+            Vertex* bezP = (otherEdge->vertices.first.get() == sharedVertex) ? otherEdge->bezier->controlP1.get() : otherEdge->bezier->controlP2.get();
+
+            if (bezP == theImmovableVertex) {
+                double tx = 0, ty = 0; getTangent(otherEdge, sharedVertex, tx, ty);
+                setArcRadius(arcEdge, sharedVertex, -tx, -ty);
+            } else {
+                double taX = 0, taY = 0; getTangent(arcEdge, sharedVertex, taX, taY);
+                double tbX = 0, tbY = 0; getTangent(otherEdge, sharedVertex, tbX, tbY);
+
+                double tgtX = taX - tbX;
+                double tgtY = taY - tbY;
+                double len = std::hypot(tgtX, tgtY);
+                if (len > 0.001) { tgtX /= len; tgtY /= len; }
+                else { tgtX = taX; tgtY = taY; }
+
+                setArcRadius(arcEdge, sharedVertex, tgtX, tgtY);
+
+                double dist = std::hypot(bezP->point.x() - sharedVertex->point.x(), bezP->point.y() - sharedVertex->point.y());
+                if (dist < 1.0) dist = 50.0;
+                bezP->point.setX(sharedVertex->point.x() - tgtX * dist);
+                bezP->point.setY(sharedVertex->point.y() - tgtY * dist);
             }
         } else {
-            double tx = 0, ty = 0;
-            getTangent(arcEdge, sharedVertex, tx, ty);
-            double dx = pOther->point.x() - sharedVertex->point.x();
-            double dy = pOther->point.y() - sharedVertex->point.y();
-            double len = std::hypot(dx, dy);
-            if (len > 0.001) {
-                pOther->point.setX(sharedVertex->point.x() - tx * len);
-                pOther->point.setY(sharedVertex->point.y() - ty * len);
-            }
+            double tx = 0, ty = 0; getTangent(otherEdge, sharedVertex, tx, ty);
+            setArcRadius(arcEdge, sharedVertex, -tx, -ty);
         }
     }
 }
 
-float C1ContinuityConstraint::maxError() { return 0.01f; }
+float C1ContinuityConstraint::maxError() { return 0.1f; }
 
 float C1ContinuityConstraint::getError() {
-    if (!edge1->isArc() && !edge2->isArc()) {
-        Vertex* p1 = edge1->isBezier() ? (edge1->vertices.first.get() == sharedVertex ? edge1->bezier->controlP1.get() : edge1->bezier->controlP2.get()) : (edge1->vertices.first.get() == sharedVertex ? edge1->vertices.second.get() : edge1->vertices.first.get());
-        Vertex* p2 = edge2->isBezier() ? (edge2->vertices.first.get() == sharedVertex ? edge2->bezier->controlP1.get() : edge2->bezier->controlP2.get()) : (edge2->vertices.first.get() == sharedVertex ? edge2->vertices.second.get() : edge2->vertices.first.get());
-        double dx1 = p1->point.x() - sharedVertex->point.x();
-        double dy1 = p1->point.y() - sharedVertex->point.y();
-        double dx2 = p2->point.x() - sharedVertex->point.x();
-        double dy2 = p2->point.y() - sharedVertex->point.y();
-        return std::hypot(dx1 + dx2, dy1 + dy2);
-    }
-    G1ContinuityConstraint g1(sharedVertex, edge1, edge2);
-    return g1.getError();
+    if (edge1->isArc() || edge2->isArc()) return 0.0f;
+
+    Vertex* p1 = edge1->isBezier() ? (edge1->vertices.first.get() == sharedVertex ? edge1->bezier->controlP1.get() : edge1->bezier->controlP2.get()) : (edge1->vertices.first.get() == sharedVertex ? edge1->vertices.second.get() : edge1->vertices.first.get());
+    Vertex* p2 = edge2->isBezier() ? (edge2->vertices.first.get() == sharedVertex ? edge2->bezier->controlP1.get() : edge2->bezier->controlP2.get()) : (edge2->vertices.first.get() == sharedVertex ? edge2->vertices.second.get() : edge2->vertices.first.get());
+
+    double dx1 = p1->point.x() - sharedVertex->point.x();
+    double dy1 = p1->point.y() - sharedVertex->point.y();
+    double dx2 = p2->point.x() - sharedVertex->point.x();
+    double dy2 = p2->point.y() - sharedVertex->point.y();
+
+    return std::hypot(dx1 + dx2, dy1 + dy2);
 }
 
 void C1ContinuityConstraint::Fix(const Vertex* theImmovableVertex) const {
-    if (!edge1->isArc() && !edge2->isArc()) {
-        Vertex* p1 = edge1->isBezier() ? (edge1->vertices.first.get() == sharedVertex ? edge1->bezier->controlP1.get() : edge1->bezier->controlP2.get()) : (edge1->vertices.first.get() == sharedVertex ? edge1->vertices.second.get() : edge1->vertices.first.get());
-        Vertex* p2 = edge2->isBezier() ? (edge2->vertices.first.get() == sharedVertex ? edge2->bezier->controlP1.get() : edge2->bezier->controlP2.get()) : (edge2->vertices.first.get() == sharedVertex ? edge2->vertices.second.get() : edge2->vertices.first.get());
+    if (edge1->isArc() || edge2->isArc()) return;
 
-        double dx1 = p1->point.x() - sharedVertex->point.x();
-        double dy1 = p1->point.y() - sharedVertex->point.y();
-        double dx2 = p2->point.x() - sharedVertex->point.x();
-        double dy2 = p2->point.y() - sharedVertex->point.y();
-        double len1 = std::hypot(dx1, dy1);
-        double len2 = std::hypot(dx2, dy2);
-        if (len1 < 0.001 || len2 < 0.001) return;
+    Vertex* p1 = edge1->isBezier() ? (edge1->vertices.first.get() == sharedVertex ? edge1->bezier->controlP1.get() : edge1->bezier->controlP2.get()) : (edge1->vertices.first.get() == sharedVertex ? edge1->vertices.second.get() : edge1->vertices.first.get());
+    Vertex* p2 = edge2->isBezier() ? (edge2->vertices.first.get() == sharedVertex ? edge2->bezier->controlP1.get() : edge2->bezier->controlP2.get()) : (edge2->vertices.first.get() == sharedVertex ? edge2->vertices.second.get() : edge2->vertices.first.get());
 
-        if (p1 == theImmovableVertex) {
-            double nx = dx1 / len1, ny = dy1 / len1;
-            p2->point.setX(sharedVertex->point.x() - nx * len1);
-            p2->point.setY(sharedVertex->point.y() - ny * len1);
-        } else if (p2 == theImmovableVertex) {
-            double nx = dx2 / len2, ny = dy2 / len2;
-            p1->point.setX(sharedVertex->point.x() - nx * len2);
-            p1->point.setY(sharedVertex->point.y() - ny * len2);
-        } else {
-            double targetLen = (len1 + len2) / 2.0;
-            double nx = (dx1 / len1 - dx2 / len2) / 2.0;
-            double ny = (dy1 / len1 - dy2 / len2) / 2.0;
-            double nLen = std::hypot(nx, ny);
-            if(nLen > 0.001) { nx /= nLen; ny /= nLen; }
-            p1->point.setX(sharedVertex->point.x() + nx * targetLen);
-            p1->point.setY(sharedVertex->point.y() + ny * targetLen);
-            p2->point.setX(sharedVertex->point.x() - nx * targetLen);
-            p2->point.setY(sharedVertex->point.y() - ny * targetLen);
-        }
-    } else {
-        G1ContinuityConstraint g1(sharedVertex, edge1, edge2);
-        g1.Fix(theImmovableVertex);
+    double dx1 = p1->point.x() - sharedVertex->point.x();
+    double dy1 = p1->point.y() - sharedVertex->point.y();
+    double dx2 = p2->point.x() - sharedVertex->point.x();
+    double dy2 = p2->point.y() - sharedVertex->point.y();
+
+    double len1 = std::hypot(dx1, dy1);
+    double len2 = std::hypot(dx2, dy2);
+
+    if (len1 < 0.001 || len2 < 0.001) return;
+
+    double targetLen = (len1 + len2) / 2.0;
+    double nx = (dx1 / len1 - dx2 / len2) / 2.0;
+    double ny = (dy1 / len1 - dy2 / len2) / 2.0;
+
+    double nLen = std::hypot(nx, ny);
+    if(nLen > 0.001) {
+        nx /= nLen;
+        ny /= nLen;
+    }
+
+    if (edge1->isBezier() && p1 != theImmovableVertex) {
+        p1->point.setX(sharedVertex->point.x() + nx * targetLen);
+        p1->point.setY(sharedVertex->point.y() + ny * targetLen);
+    }
+    if (edge2->isBezier() && p2 != theImmovableVertex) {
+        p2->point.setX(sharedVertex->point.x() - nx * targetLen);
+        p2->point.setY(sharedVertex->point.y() - ny * targetLen);
     }
 }

@@ -15,4 +15,5 @@ class ArcCurve {
 public:
     ArcCurve(QPointF& p1, const QPointF& p2);
     double radius;
+    bool isMajorArc = false;
 };

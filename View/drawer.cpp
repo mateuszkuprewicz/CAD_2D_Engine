@@ -76,18 +76,26 @@ void Drawer::Render(QPainter &painter) {
                     double R = std::max(std::abs(r_val), d / 2.0);
                     double h = std::sqrt(R * R - (d / 2.0) * (d / 2.0));
                     double nx = -dy / d, ny = dx / d;
+
                     double sign = (r_val >= 0) ? 1.0 : -1.0;
+                    // Odwróć pozycję środka okręgu względem cięciwy dla dużych łuków (powyżej 180 st.)
+                    double centerSign = edge->arc->isMajorArc ? -sign : sign;
+
                     QPointF M((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0);
-                    QPointF center(M.x() + sign * h * nx, M.y() + sign * h * ny);
+                    QPointF center(M.x() + centerSign * h * nx, M.y() + centerSign * h * ny);
+
                     double startAngle = std::atan2(-(p1.y() - center.y()), p1.x() - center.x()) * 180.0 / M_PI;
                     double endAngle = std::atan2(-(p2.y() - center.y()), p2.x() - center.x()) * 180.0 / M_PI;
                     double sweepAngle = endAngle - startAngle;
 
                     while (sweepAngle > 180.0) sweepAngle -= 360.0;
                     while (sweepAngle <= -180.0) sweepAngle += 360.0;
-                    if (r_val >= 0) { if (sweepAngle >= 0.0) sweepAngle -= 360.0; }
-                    else { if (sweepAngle <= 0.0) sweepAngle += 360.0; }
-                    if (std::abs(sweepAngle) < 0.0001) sweepAngle = (r_val >= 0) ? -180.0 : 180.0;
+
+                    if (r_val >= 0) {
+                        if (sweepAngle >= 0.0) sweepAngle -= 360.0;
+                    } else {
+                        if (sweepAngle <= 0.0) sweepAngle += 360.0;
+                    }
 
                     painter.save();
                     painter.setPen(curvePen);

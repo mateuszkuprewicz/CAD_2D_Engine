@@ -94,7 +94,8 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                 auto prevEdge = poly->edges[prevIdx].get();
                 auto currEdge = poly->edges[i].get();
 
-                bool hasCurve = prevEdge->isBezier() || prevEdge->isArc() || currEdge->isBezier() || currEdge->isArc();
+                bool hasArc = prevEdge->isArc() || currEdge->isArc();
+                bool hasCurve = prevEdge->isBezier() || currEdge->isBezier() || hasArc;
 
                 QMenu* contMenu = nullptr;
                 QAction* setG0 = nullptr;
@@ -106,6 +107,10 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                     setG0 = contMenu->addAction("G0 (None)");
                     setG1 = contMenu->addAction("G1");
                     setC1 = contMenu->addAction("C1");
+
+                    if (hasArc) {
+                        setC1->setEnabled(false);
+                    }
                 }
 
                 QAction* sel = vMenu.exec(event->globalPos());
