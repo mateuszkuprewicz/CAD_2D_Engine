@@ -39,9 +39,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Models/edgetypes.cpp
         Models/Constraints/continuityconstraint.cpp
         Models/continuityconstraintmanager.h Models/continuityconstraintmanager.cpp
-
-
-
+        View/Renderer/igeometryrenderer.h
+        View/Renderer/qtgeometryrenderer.h View/Renderer/qtgeometryrenderer.cpp
+        View/Renderer/customgeometryrenderer.h View/Renderer/customgeometryrenderer.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET GrafikaKomputerowaProjekt1 APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

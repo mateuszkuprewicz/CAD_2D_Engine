@@ -1,20 +1,26 @@
 #pragma once
 #include <QPainter>
-#include "../Models/scene.h"
+#include <memory>
+#include "Renderer/IGeometryRenderer.h"
 
-class Polygon;
+// Forward declarations
+class Scene;
 class Edge;
-class QImage;
 
-class Drawer
-{
+class Drawer {
 public:
-    Drawer(Scene* s);
-    void Render(QPainter& painter);
-    void SetHoveredEdge(const Edge* edge) { hoveredEdge = edge; }
+    explicit Drawer(Scene *s);
+    void Render(QPainter &painter);
+
+    void setRenderer(std::unique_ptr<IGeometryRenderer> r) { renderer = std::move(r); }
+    IGeometryRenderer* getRenderer() const { return renderer.get(); }
+    void SetHoveredEdge(const Edge *);
+
 private:
-    const Edge* hoveredEdge = nullptr;
-    Scene *scene;
+    void DrawPolygons(QPainter &painter);
+    void DrawConstraints(QPainter &painter);
+
+    Scene *scene = nullptr;
+    const Edge *hoveredEdge = nullptr;
+    std::unique_ptr<IGeometryRenderer> renderer;
 };
-
-
