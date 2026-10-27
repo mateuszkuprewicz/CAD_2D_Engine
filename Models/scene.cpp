@@ -6,11 +6,56 @@
 #include "edge.h"
 #include <tuple>
 #include "continuityconstraintmanager.h"
+#include "Constraints/continuityconstraint.h"
+#include "Constraints/lengthconstraint.h"
+#include "Constraints/parallelismconstraint.h"
+
 
 Scene::Scene() {
     Polygons.push_back(std::make_unique<Polygon>(
-        std::initializer_list<QPoint>{QPoint(100, 100), QPoint(300, 100), QPoint(300, 300), QPoint(100, 300)}
+        std::initializer_list<QPoint>{
+            QPoint(50, 250), QPoint(200, 150), QPoint(350, 250),
+            QPoint(250, 400), QPoint(100, 450)
+        }
         ));
+
+    Polygons.push_back(std::make_unique<Polygon>(
+        std::initializer_list<QPoint>{
+            QPoint(450, 250), QPoint(550, 150), QPoint(750, 200),
+            QPoint(800, 350), QPoint(650, 500), QPoint(400, 400)
+        }
+        ));
+
+    Edge* p1_e0 = Polygons[0]->edges[0].get();
+    Edge* p1_e1 = Polygons[0]->edges[1].get();
+    Edge* p1_e2 = Polygons[0]->edges[2].get();
+
+    p1_e0->bezier = std::make_unique<BezierCurve>(
+        p1_e0->vertices.first->point,
+        p1_e0->vertices.second->point
+        );
+
+    Vertex* sharedVertexP1 = p1_e0->vertices.second.get();
+    AddConstraint(std::make_shared<G1ContinuityConstraint>(sharedVertexP1, p1_e0, p1_e1));
+    TrySolveConstraints(sharedVertexP1);
+
+    AddConstraint(std::make_shared<LengthConstraint>(p1_e2, 150.0f));
+    TrySolveConstraints(p1_e2->vertices.first.get());
+
+    Edge* p2_e0 = Polygons[1]->edges[0].get();
+    Edge* p2_e1 = Polygons[1]->edges[1].get();
+    Edge* p2_e2 = Polygons[1]->edges[2].get();
+    Edge* p2_e4 = Polygons[1]->edges[4].get();
+
+    Vertex* sharedVertexP2 = p2_e0->vertices.second.get();
+    p2_e0->bezier = std::make_unique<BezierCurve>(
+        p2_e0->vertices.first->point,
+        p2_e0->vertices.second->point);
+    AddConstraint(std::make_shared<C1ContinuityConstraint>(sharedVertexP2, p2_e0, p2_e1));
+    TrySolveConstraints(sharedVertexP2);
+
+    AddConstraint(std::make_shared<ParallelismConstraint>(p2_e2, p2_e4));
+    TrySolveConstraints(p2_e2->vertices.first.get());
 }
 
 void Scene::AddConstraint(std::shared_ptr<AbstractConstraint> c) {
