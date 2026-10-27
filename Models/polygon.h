@@ -10,8 +10,6 @@ class Polygon
 {
 public:
     Polygon(std::initializer_list<QPoint>);
-    Polygon(const Polygon&);
-    Polygon& operator=(Polygon temp);
     std::vector<std::unique_ptr<Edge>> edges;
 
     void translate(int dx, int dy);

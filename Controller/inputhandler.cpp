@@ -206,8 +206,8 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                     size_t prevIdx = (i == 0) ? poly->edges.size() - 1 : i - 1;
                     size_t nextIdx = (i + 1) % poly->edges.size();
 
-                    scene->constraintManager.DelContinuityConstraint(v1.get());
-                    scene->constraintManager.DelContinuityConstraint(v2.get());
+                    // scene->constraintManager.DelContinuityConstraint(v1.get());
+                    // scene->constraintManager.DelContinuityConstraint(v2.get());
 
                     scene->AddConstraint(std::make_shared<G1ContinuityConstraint>(v1.get(), poly->edges[prevIdx].get(), edge));
                     scene->AddConstraint(std::make_shared<G1ContinuityConstraint>(v2.get(), edge, poly->edges[nextIdx].get()));
@@ -215,20 +215,19 @@ bool InputHandler::handleRightClick(QWidget *parent, QMouseEvent *event) {
                     return true;
                 }
                 else if (selectedAction == convertToArc) {
-                    scene->constraintManager.DelContinuityConstraint(v1.get());
-                    scene->constraintManager.DelContinuityConstraint(v2.get());
+                    // scene->constraintManager.DelContinuityConstraint(v1.get());
+                    // scene->constraintManager.DelContinuityConstraint(v2.get());
                     auto edge = poly->edges[i].get();
                     edge->arc = std::make_unique<ArcCurve>(v1->point, v2->point);
                     edge->bezier.reset();
                     return true;
                 }
                 else if (selectedAction == convertToLine) {
-                    scene->constraintManager.DelContinuityConstraint(v1.get());
-                    scene->constraintManager.DelContinuityConstraint(v2.get());
+                    // scene->constraintManager.DelContinuityConstraint(v1.get());
+                    // scene->constraintManager.DelContinuityConstraint(v2.get());
                     auto edge = poly->edges[i].get();
                     edge->bezier.reset();
                     edge->arc.reset();
-
                     return true;
                 }
             }

@@ -38,31 +38,43 @@ void ContinuityConstraint::getTangent(Edge* edge, Vertex* shared, double& tx, do
         tx = p->point.x() - shared->point.x();
         ty = p->point.y() - shared->point.y();
     } else if (edge->isArc()) {
-        Vertex* pOther = (edge->vertices.first.get() == shared) ? edge->vertices.second.get() : edge->vertices.first.get();
+        bool isFirst = (edge->vertices.first.get() == shared);
+        Vertex* pOther = isFirst ? edge->vertices.second.get() : edge->vertices.first.get();
+
         double chordX = pOther->point.x() - shared->point.x();
         double chordY = pOther->point.y() - shared->point.y();
         double chordLen = std::hypot(chordX, chordY);
+
         if (chordLen < 0.001) { tx = 0; ty = 0; return; }
 
         double R = edge->arc->radius;
-        double absR = std::max(std::abs(R), chordLen / 2.0);
-        double h = std::sqrt(absR * absR - (chordLen / 2.0) * (chordLen / 2.0));
-        double nx = -chordY / chordLen;
-        double ny = chordX / chordLen;
-        double sign = (R >= 0) ? 1.0 : -1.0;
 
-        double cx = (shared->point.x() + pOther->point.x()) / 2.0 + sign * h * nx;
-        double cy = (shared->point.y() + pOther->point.y()) / 2.0 + sign * h * ny;
-
-        double rx = shared->point.x() - cx;
-        double ry = shared->point.y() - cy;
-
-        tx = -ry;
-        ty = rx;
-        if (tx * chordX + ty * chordY < 0) {
-            tx = -tx;
-            ty = -ty;
+        // Protect against invalid arcs
+        if (std::abs(R) < chordLen / 2.0) {
+            R = (R >= 0 ? 1.0 : -1.0) * (chordLen / 2.0);
         }
+
+        // Derive rotation angle directly mirroring setArcRadius math
+        double sin_alpha = -chordLen / (2.0 * R);
+        if (!isFirst) {
+            sin_alpha = -sin_alpha;
+        }
+
+        // Clamp to [-1, 1] to prevent NaN in sqrt
+        sin_alpha = std::max(-1.0, std::min(1.0, sin_alpha));
+        double cos_alpha = std::sqrt(1.0 - sin_alpha * sin_alpha);
+
+        // Apply major arc flag (this was completely missing in your code)
+        if (edge->arc->isMajorArc) {
+            cos_alpha = -cos_alpha;
+        }
+
+        double ux = chordX / chordLen;
+        double uy = chordY / chordLen;
+
+        // Rotate vector pointing away from shared vertex
+        tx = ux * cos_alpha - uy * sin_alpha;
+        ty = ux * sin_alpha + uy * cos_alpha;
     } else {
         Vertex* p = (edge->vertices.first.get() == shared) ? edge->vertices.second.get() : edge->vertices.first.get();
         tx = p->point.x() - shared->point.x();
@@ -72,7 +84,7 @@ void ContinuityConstraint::getTangent(Edge* edge, Vertex* shared, double& tx, do
     if (len > 0.001) { tx /= len; ty /= len; }
 }
 
-float G1ContinuityConstraint::maxError() { return 0.1f; }
+float G1ContinuityConstraint::maxError() { return 0.02; }
 
 float G1ContinuityConstraint::getError() {
     double tx1 = 0, ty1 = 0, tx2 = 0, ty2 = 0;
@@ -89,15 +101,12 @@ void G1ContinuityConstraint::Fix(const Vertex* theImmovableVertex) const {
         double chordY = arcEnd->point.y() - shared->point.y();
         double chordLenSq = chordX * chordX + chordY * chordY;
 
-        // Iloczyn wektorowy - determinuje promień i stronę cięciwy
         double cross = tgtX * chordY - tgtY * chordX;
 
-        // Zapewnienie spójności wypukłości niezależnie od tego, czy modyfikujemy początek czy koniec
         if (!isFirst) {
             cross = -cross;
         }
 
-        // Iloczyn skalarny - jeśli styczna i cięciwa mają rozbieżne kierunki, to mamy do czynienia z dużym łukiem
         double dot = tgtX * chordX + tgtY * chordY;
         arcEdge->arc->isMajorArc = (dot < 0.0);
 

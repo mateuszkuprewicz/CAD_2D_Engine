@@ -24,36 +24,6 @@ Polygon::Polygon(std::initializer_list<QPoint> list) {
     edges.push_back(std::make_unique<Edge>(second, first));
 }
 
-Polygon::Polygon(const Polygon& p) {
-    const auto &list = p.edges;
-    auto it = list.begin();
-    if (list.size() < 3) return;
-
-    std::shared_ptr<Vertex> first = std::make_shared<Vertex>((*it)->vertices.first->point.x(), (*it)->vertices.first->point.y());
-    ++it;
-    std::shared_ptr<Vertex> temp = std::make_shared<Vertex>((*it)->vertices.second->point.x(), (*it)->vertices.second->point.y());
-    std::unique_ptr temp_edge = std::make_unique<Edge>(first,temp);
-    edges.push_back(std::move(temp_edge));
-    vertices.insert(first.get());
-    vertices.insert(temp.get());
-
-    std::shared_ptr<Vertex> second;
-    for(++it; it!=list.end(); ++it)
-    {
-        second = std::make_shared<Vertex>((*it)->vertices.second->point.x(), (*it)->vertices.second->point.y());
-        edges.push_back(std::make_unique<Edge>(temp,second));
-        vertices.insert(second.get());
-        temp = second;
-    }
-    edges.push_back(std::make_unique<Edge>(second, first));
-}
-
-Polygon& Polygon::operator=(Polygon temp){
-    std::swap(this->edges, temp.edges);
-    std::swap(this->vertices, temp.vertices);
-    return *this;
-}
-
 void Polygon::translate(int dx, int dy) {
     for(auto it = edges.begin(); it != edges.end(); ++it) {
         auto vertices = (*it)->vertices;

@@ -69,13 +69,13 @@ void Scene::SolveConstraints(Vertex* theImmovableVertex) {
 bool Scene::TrySolveConstraints(Vertex* priorityVertex, Vertex* priorityVertex2) {
     if(priorityVertex == nullptr) return false;
 
-    std::unordered_map<Edge *, std::pair<Vertex, Vertex>> previous_state;
+    std::unordered_map<Edge *, Edge> previous_state;
     for(const auto &poly : Polygons)
     {
         for(const auto& edge : poly->edges) {
             previous_state.insert_or_assign(
                 edge.get(),
-                std::make_pair(*edge->vertices.first, *edge->vertices.second)
+                *edge
                 );
         }
     }
@@ -124,10 +124,18 @@ bool Scene::TrySolveConstraints(Vertex* priorityVertex, Vertex* priorityVertex2)
     if (!success) {
         DelConstraint(lastAddedConstraint);
 
-        for (const auto& [edgePtr, vertices_pair] : previous_state) {
+        for (const auto& [edgePtr, edge] : previous_state) {
 
-            *edgePtr->vertices.first = vertices_pair.first;
-            *edgePtr->vertices.second = vertices_pair.second;
+            edgePtr->vertices.first->point = edge.vertices.first->point;
+            edgePtr->vertices.second->point = edge.vertices.second->point;
+            if(edge.isArc()) {
+                edgePtr->arc->radius = edge.arc->radius;
+                edgePtr->arc->isMajorArc = edge.arc->isMajorArc;
+            }
+            if(edge.isBezier()) {
+                edgePtr->bezier->controlP1->point = edge.bezier->controlP1->point;
+                edgePtr->bezier->controlP2->point = edge.bezier->controlP2->point;
+            }
         }
     }
 

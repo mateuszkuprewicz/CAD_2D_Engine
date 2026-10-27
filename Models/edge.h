@@ -16,4 +16,6 @@ public:
     std::unique_ptr<ArcCurve> arc;
     bool isBezier() const { return bezier != nullptr; }
     bool isArc() const {return arc != nullptr;}
+    Edge& operator=(const Edge& other);
+    Edge(const Edge& other);
 };
