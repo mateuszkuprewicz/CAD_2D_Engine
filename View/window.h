@@ -1,6 +1,4 @@
 #pragma once
-#include <QWidget>
-#include <QMouseEvent>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <memory>

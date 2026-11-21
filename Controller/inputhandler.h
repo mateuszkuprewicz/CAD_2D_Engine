@@ -1,40 +1,32 @@
 #pragma once
+#include <memory>
 #include <QMouseEvent>
-#include <QPoint>
+#include "InputHandlerStates/DefaultState/HitTest.h"
 
-class Polygon;
-class Vertex;
-class Edge;
+class AbstractInputHandlerState;
 class Scene;
+class Edge;
 class QWidget;
-
-enum class AppMode { Normal, SelectParallelEdge, DeleteParallelEdge };
 
 class InputHandler
 {
 public:
     explicit InputHandler(Scene* scene);
+    ~InputHandler();
 
-    bool handleDoubleClick(QMouseEvent *event);
-    bool handleRightClick(QWidget* parent, QMouseEvent *event);
-    bool handleLeftClick(QMouseEvent *event);
-    bool handleMouseMove(QMouseEvent *event);
-    bool handleMouseRelease(QMouseEvent *event);
+    void ChangeState(std::unique_ptr<AbstractInputHandlerState> newState);
 
-    const Edge* getHoveredEdge() const { return hoveredEdge; }
+    bool handleDoubleClick(QMouseEvent* event);
+    bool handleRightClick(QWidget* parent, QMouseEvent* event);
+    bool handleLeftClick(QMouseEvent* event);
+    bool handleMouseMove(QMouseEvent* event);
+    bool handleMouseRelease(QMouseEvent* event);
+
+    const Edge* getHoveredEdge() const;
+    const HitTest& getHitTest() const { return hitTest; }
 
 private:
-    double distSq(QPointF a, QPointF b);
-    double segmentDistSq(QPointF pt, QPointF v1, QPointF v2);
-    Edge* findEdgeUnderCursor(QPoint p);
-
+    std::unique_ptr<AbstractInputHandlerState> state;
+    HitTest hitTest;
     Scene* scene = nullptr;
-    AppMode currentMode = AppMode::Normal;
-    Edge* firstParallelEdge = nullptr;
-    Polygon* firstParallelPoly = nullptr;
-    Edge* hoveredEdge = nullptr;
-
-    Polygon* draggedPolygon = nullptr;
-    Vertex* draggedVertex = nullptr;
-    QPoint lastMousePos;
 };

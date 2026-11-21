@@ -14,6 +14,24 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
         main.cpp
+        Controller/InputHandlerStates/DefaultState/HitTest.cpp
+        Controller/InputHandlerStates/DefaultState/HitTest.h
+        Controller/InputHandlerStates/DefaultState/MenuProvider.cpp
+        Controller/InputHandlerStates/DefaultState/MenuProvider.h
+        Controller/InputHandlerStates/AbstractInputHandlerState.cpp
+        Controller/InputHandlerStates/AbstractInputHandlerState.h
+        Controller/InputHandlerStates/DefaultState/Default.cpp
+        Controller/InputHandlerStates/DefaultState/Default.h
+        Controller/InputHandlerStates/DraggingVertexState/DraggingVertex.cpp
+        Controller/InputHandlerStates/DraggingVertexState/DraggingVertex.h
+        Controller/InputHandlerStates/DraggingPolygonState/DraggingPolygon.cpp
+        Controller/InputHandlerStates/DraggingPolygonState/DraggingPolygon.h
+        Controller/InputHandlerStates/ParallelEdgesStates/AbstractParallelEdgeState.cpp
+        Controller/InputHandlerStates/ParallelEdgesStates/AbstractParallelEdgeState.h
+        Controller/InputHandlerStates/ParallelEdgesStates/SelectingParallelEdge.cpp
+        Controller/InputHandlerStates/ParallelEdgesStates/SelectingParallelEdge.h
+        Controller/InputHandlerStates/ParallelEdgesStates/DeletingParallelEdge.cpp
+        Controller/InputHandlerStates/ParallelEdgesStates/DeletingParallelEdge.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
