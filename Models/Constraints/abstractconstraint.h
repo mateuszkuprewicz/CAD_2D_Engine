@@ -7,6 +7,7 @@ class AbstractConstraint
 {
 public:
     AbstractConstraint();
+    virtual ~AbstractConstraint() = default;
     virtual void Fix(const Vertex *theImmovableVertex) const = 0;
     virtual std::vector<const Vertex *> affectedVertices() const = 0;
     virtual bool isEqual(const AbstractConstraint* other) const { return false; }
