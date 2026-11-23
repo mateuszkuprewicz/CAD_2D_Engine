@@ -171,6 +171,7 @@ bool Scene::TrySolveConstraints(Vertex* priorityVertex, Vertex* priorityVertex2)
         }
     }
 
+    //rollback
     if (!success) {
         DelConstraint(lastAddedConstraint);
 

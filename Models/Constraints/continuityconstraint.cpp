@@ -206,8 +206,18 @@ float C1ContinuityConstraint::getError() {
 
     double dx1 = p1->point.x() - sharedVertex->point.x();
     double dy1 = p1->point.y() - sharedVertex->point.y();
+    if (edge1->isBezier())
+    {
+        dx1*=3;
+        dy1*=3;
+    }
     double dx2 = p2->point.x() - sharedVertex->point.x();
     double dy2 = p2->point.y() - sharedVertex->point.y();
+    if (edge2->isBezier())
+    {
+        dx2*=3;
+        dy2*=3;
+    }
 
     return std::hypot(dx1 + dx2, dy1 + dy2);
 }
@@ -222,6 +232,19 @@ void C1ContinuityConstraint::Fix(const Vertex* theImmovableVertex) const {
     double dy1 = p1->point.y() - sharedVertex->point.y();
     double dx2 = p2->point.x() - sharedVertex->point.x();
     double dy2 = p2->point.y() - sharedVertex->point.y();
+    if (edge2->isBezier() && !edge1->isBezier()) {
+        dx1/=3;
+        dy1/=3;
+        dx2*=3;
+        dy2*=3;
+    }
+    if (edge1->isBezier() && !edge2->isBezier()) {
+        dx2/=3;
+        dy2/=3;
+        dx1*=3;
+        dy1*=3;
+    }
+
 
     if (p1 == theImmovableVertex) {
         p2->point.setX(sharedVertex->point.x() - dx1);
